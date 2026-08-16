@@ -203,7 +203,7 @@ class PlaySuisseAPI:
         if not assets_list:
             for mod in page.get("modules", []):
                 assets_list.extend(mod.get("assets") or [])
-                
+
         # Filter duplicates by ID
         seen = set()
         unique_assets = []
@@ -232,6 +232,10 @@ class PlaySuisseAPI:
                 episodeNumber
                 seasonNumber
                 seriesName
+                medias {
+                    type
+                    url
+                }
                 episodes {
                     id
                     name
