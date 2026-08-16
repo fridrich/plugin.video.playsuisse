@@ -43,6 +43,30 @@ msgctxt "#30085"
 msgid "Search"
 msgstr "Search"
 
+msgctxt "#30020"
+msgid "Language"
+msgstr "Language"
+
+msgctxt "#30021"
+msgid "Default / Auto"
+msgstr "Default / Auto"
+
+msgctxt "#30022"
+msgid "German"
+msgstr "German"
+
+msgctxt "#30023"
+msgid "French"
+msgstr "French"
+
+msgctxt "#30024"
+msgid "Italian"
+msgstr "Italian"
+
+msgctxt "#30025"
+msgid "Romansh"
+msgstr "Romansh"
+
 msgctxt "#30100"
 msgid "Failed to log in. Please check credentials in addon settings."
 msgstr "Failed to log in. Please check credentials in addon settings."

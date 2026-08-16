@@ -16,7 +16,19 @@ class PlaySuisseAPI:
     GRAPHQL_URL = "https://www.playsuisse.ch/api/graphql"
 
     def __init__(self):
-        self.locale = self._get_kodi_locale()
+        pass
+
+    def _get_active_locale(self):
+        """Gets the locale based on the addon setting, falling back to Kodi's language."""
+        import xbmcaddon
+        try:
+            addon = xbmcaddon.Addon("plugin.video.playsuisse")
+            lang_setting = addon.getSetting("language")
+            if lang_setting and lang_setting != "auto":
+                return lang_setting
+        except Exception:
+            pass
+        return self._get_kodi_locale()
 
     def _get_kodi_locale(self):
         """Maps Kodi's current language to Play Suisse's supported locales."""
@@ -36,9 +48,10 @@ class PlaySuisseAPI:
 
     def _query(self, query, variables=None):
         """Executes a POST request to the Play Suisse GraphQL endpoint."""
+        locale = self._get_active_locale()
         headers = {
             "Content-Type": "application/json",
-            "locale": self.locale,
+            "locale": locale,
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"
         }
         payload = {

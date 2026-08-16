@@ -13,6 +13,20 @@
 					<default></default>
 					<control type="edit" format="string" option="hidden"/>
 				</setting>
+				<setting id="language" type="string" label="30020" help="">
+					<level>0</level>
+					<default>auto</default>
+					<constraints>
+						<options>
+							<option label="30021">auto</option>
+							<option label="30022">de</option>
+							<option label="30023">fr</option>
+							<option label="30024">it</option>
+							<option label="30025">rm</option>
+						</options>
+					</constraints>
+					<control type="spinner" format="string" />
+				</setting>
 				<setting id="Prefer_HD" type="boolean" label="30002" help="">
 					<level>0</level>
 					<default>true</default>
