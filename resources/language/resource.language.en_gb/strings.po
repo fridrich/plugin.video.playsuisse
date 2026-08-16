@@ -1,0 +1,52 @@
+# Kodi Media Center language file
+# Addon Name: Play Suisse
+# Addon id: plugin.video.playsuisse
+# Addon Provider: Fridrich Strba
+msgid ""
+msgstr ""
+"Project-Id-Version: plugin.video.playsuisse\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgctxt "#30000"
+msgid "Email"
+msgstr "Email"
+
+msgctxt "#30001"
+msgid "Password"
+msgstr "Password"
+
+msgctxt "#30002"
+msgid "Prefer HD quality"
+msgstr "Prefer HD quality"
+
+msgctxt "#30010"
+msgid "General"
+msgstr "General"
+
+msgctxt "#30050"
+msgid "Home"
+msgstr "Home"
+
+msgctxt "#30051"
+msgid "Movies"
+msgstr "Movies"
+
+msgctxt "#30052"
+msgid "Series"
+msgstr "Series"
+
+msgctxt "#30085"
+msgid "Search"
+msgstr "Search"
+
+msgctxt "#30100"
+msgid "Failed to log in. Please check credentials in addon settings."
+msgstr "Failed to log in. Please check credentials in addon settings."
+
+msgctxt "#30101"
+msgid "Play Suisse login required. Please configure your email and password in settings."
+msgstr "Play Suisse login required. Please configure your email and password in settings."
