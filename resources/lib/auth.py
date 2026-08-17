@@ -255,6 +255,8 @@ class PlaySuisseAuth:
         parsed_query = parse_qs(urlparse(res.url).query)
         request_id = parsed_query.get('requestId', [None])[0]
         if not request_id:
+            msg = f"PlaySuisseAuth: Step 1 authz failed. Status: {res.status_code}, URL: {res.url}, Body: {res.text[:500]}"
+            xbmc.log(msg, xbmc.LOGERROR)
             raise Exception("AUTHZ_FAILED")
 
         # Step 2: Submit username (initiate)
