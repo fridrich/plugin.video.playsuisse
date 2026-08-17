@@ -23,6 +23,10 @@ msgctxt "#30002"
 msgid "Prefer HD quality"
 msgstr "Prefer HD quality"
 
+msgctxt "#30005"
+msgid "Authenticate / Log in"
+msgstr "Authenticate / Log in"
+
 msgctxt "#30010"
 msgid "General"
 msgstr "General"
@@ -74,3 +78,15 @@ msgstr "Failed to log in. Please check credentials in addon settings."
 msgctxt "#30101"
 msgid "Play Suisse login required. Please configure your email and password in settings."
 msgstr "Play Suisse login required. Please configure your email and password in settings."
+
+msgctxt "#30102"
+msgid "Authentication successful! Your credentials have been verified."
+msgstr "Authentication successful! Your credentials have been verified."
+
+msgctxt "#30103"
+msgid "Invalid email address. Please try again."
+msgstr "Invalid email address. Please try again."
+
+msgctxt "#30104"
+msgid "Invalid password. Please try again."
+msgstr "Invalid password. Please try again."

@@ -201,6 +201,48 @@ def handle_search_input():
     else:
         xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
 
+
+def handle_login():
+    """Triggers authentication with email and password prompting."""
+    from resources.lib.auth import PlaySuisseAuth
+    auth = PlaySuisseAuth(ADDON)
+
+    # Clear existing session cache to force fresh handshake
+    import os
+    if os.path.exists(auth.session_file):
+        try:
+            os.remove(auth.session_file)
+        except Exception:
+            pass
+
+    # Prompt and perform login handshake
+    try:
+        if not auth.prompt_credentials_and_login():
+            return
+
+        xbmcgui.Dialog().ok(
+            ADDON.getAddonInfo('name'),
+            ADDON.getLocalizedString(30102)
+        )
+    except Exception as e:
+        err_str = str(e)
+        xbmc.log(f"PlaySuisse login action failed: {err_str}", xbmc.LOGERROR)
+
+        if "CREDENTIALS_MISSING" in err_str:
+            msg_id = 30101
+        elif "USERNAME_INVALID" in err_str:
+            msg_id = 30103
+        elif "PASSWORD_INVALID" in err_str:
+            msg_id = 30104
+        else:
+            msg_id = 30100
+
+        xbmcgui.Dialog().ok(
+            ADDON.getAddonInfo('name'),
+            ADDON.getLocalizedString(msg_id)
+        )
+
+
 def run():
     """Main routing and execution logic."""
     params = dict(parse_qsl(sys.argv[2][1:]))
@@ -220,8 +262,11 @@ def run():
         list_series_episodes(item_id, title)
     elif mode == "search_input":
         handle_search_input()
+    elif mode == "login":
+        handle_login()
     elif mode == "play":
         player.resolve_and_play(ADDON_HANDLE, item_id, title)
+
 
 if __name__ == "__main__":
     run()

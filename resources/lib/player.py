@@ -29,8 +29,8 @@ class PlaySuissePlayer:
         xbmc.executebuiltin("ActivateWindow(busydialognocancel)")
         try:
             id_token = self.auth.get_token()
-            # 2. Fetch asset details containing medias
-            asset_data = self.api.get_asset(asset_id)
+            # 2. Fetch asset details containing medias with authorization token
+            asset_data = self.api.get_asset(asset_id, token=id_token)
         except Exception as e:
             xbmc.executebuiltin("Dialog.Close(busydialognocancel)")
             err_str = str(e)

@@ -46,7 +46,7 @@ class PlaySuisseAPI:
         # Default to French
         return "fr"
 
-    def _query(self, query, variables=None):
+    def _query(self, query, variables=None, token=None):
         """Executes a POST request to the Play Suisse GraphQL endpoint."""
         locale = self._get_active_locale()
         headers = {
@@ -54,6 +54,8 @@ class PlaySuisseAPI:
             "locale": locale,
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"
         }
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
         payload = {
             "query": query,
             "variables": variables or {}
@@ -214,7 +216,7 @@ class PlaySuisseAPI:
                 unique_assets.append(a)
         return unique_assets
 
-    def get_asset(self, asset_id):
+    def get_asset(self, asset_id, token=None):
         """Retrieves detailed asset metadata and its episodes if it's a series."""
         q = """
         query GetAsset($assetId: ID!) {
@@ -251,5 +253,5 @@ class PlaySuisseAPI:
             }
         }
         """
-        data = self._query(q, {"assetId": asset_id})
+        data = self._query(q, {"assetId": asset_id}, token=token)
         return data.get("assetV2") or {}

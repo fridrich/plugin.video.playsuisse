@@ -13,6 +13,14 @@
 					<default></default>
 					<control type="edit" format="string" option="hidden"/>
 				</setting>
+				<setting id="authenticate" type="action" label="30005" help="">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.playsuisse?mode=login)</data>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="button" format="action"/>
+				</setting>
 				<setting id="language" type="string" label="30020" help="">
 					<level>0</level>
 					<default>auto</default>
