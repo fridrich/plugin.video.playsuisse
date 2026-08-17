@@ -88,28 +88,7 @@ class PlaySuisseAuth:
 
     def get_token(self):
         """Returns a cached valid token, refreshes if expired, or performs login."""
-        # 1. Try to read cached session
-        if os.path.exists(self.session_file):
-            try:
-                with open(self.session_file, "r") as f:
-                    session_data = json.load(f)
-                token = session_data.get("id_token")
-                refresh_token = session_data.get("refresh_token")
-
-                # Check if cached id_token is less than 50 minutes old (tokens last 1hr)
-                if time.time() - session_data.get("timestamp", 0) < 3000:
-                    return token
-
-                # Token is expired, try to use refresh token
-                if refresh_token:
-                    try:
-                        return self._refresh_token(refresh_token)
-                    except Exception as e:
-                        xbmc.log(f"PlaySuisseAuth: Token refresh failed: {e}", xbmc.LOGDEBUG)
-            except Exception as e:
-                xbmc.log(f"PlaySuisseAuth: Error reading session cache: {e}", xbmc.LOGDEBUG)
-
-        # 2. Check if a temporary credentials.json exists for non-interactive login
+        # 1. Check if a temporary credentials.json exists for non-interactive login
         if os.path.exists(self.credentials_file):
             try:
                 with open(self.credentials_file, "r") as f:
@@ -144,6 +123,27 @@ class PlaySuisseAuth:
                         )
             except Exception as e:
                 xbmc.log(f"PlaySuisseAuth: Error reading credentials file: {e}", xbmc.LOGERROR)
+
+        # 2. Try to read cached session
+        if os.path.exists(self.session_file):
+            try:
+                with open(self.session_file, "r") as f:
+                    session_data = json.load(f)
+                token = session_data.get("id_token")
+                refresh_token = session_data.get("refresh_token")
+
+                # Check if cached id_token is less than 50 minutes old (tokens last 1hr)
+                if time.time() - session_data.get("timestamp", 0) < 3000:
+                    return token
+
+                # Token is expired, try to use refresh token
+                if refresh_token:
+                    try:
+                        return self._refresh_token(refresh_token)
+                    except Exception as e:
+                        xbmc.log(f"PlaySuisseAuth: Token refresh failed: {e}", xbmc.LOGDEBUG)
+            except Exception as e:
+                xbmc.log(f"PlaySuisseAuth: Error reading session cache: {e}", xbmc.LOGDEBUG)
 
         # 3. No session, refresh token failed, or credentials.json failed/not present.
         # Prompt the user interactively
