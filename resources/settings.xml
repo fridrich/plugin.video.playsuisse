@@ -35,10 +35,50 @@
 					</constraints>
 					<control type="spinner" format="string" />
 				</setting>
+			</group>
+		</category>
+		<category id="Video" label="30015" help="">
+			<group id="1">
 				<setting id="Prefer_HD" type="boolean" label="30002" help="">
 					<level>0</level>
 					<default>true</default>
 					<control type="toggle"/>
+				</setting>
+			</group>
+		</category>
+		<category id="Audio" label="30016" help="">
+			<group id="1">
+				<setting id="audio_language" type="string" label="30030" help="">
+					<level>0</level>
+					<default>auto</default>
+					<constraints>
+						<options>
+							<option label="30021">auto</option>
+							<option label="30023">fr</option>
+							<option label="30022">de</option>
+							<option label="30024">it</option>
+							<option label="30025">rm</option>
+						</options>
+					</constraints>
+					<control type="spinner" format="string" />
+				</setting>
+			</group>
+		</category>
+		<category id="Subtitles" label="30017" help="">
+			<group id="1">
+				<setting id="subtitle_language" type="string" label="30031" help="">
+					<level>0</level>
+					<default>off</default>
+					<constraints>
+						<options>
+							<option label="30032">off</option>
+							<option label="30023">fr</option>
+							<option label="30022">de</option>
+							<option label="30024">it</option>
+							<option label="30025">rm</option>
+						</options>
+					</constraints>
+					<control type="spinner" format="string" />
 				</setting>
 			</group>
 		</category>

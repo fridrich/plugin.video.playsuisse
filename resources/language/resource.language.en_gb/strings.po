@@ -31,6 +31,30 @@ msgctxt "#30010"
 msgid "General"
 msgstr "General"
 
+msgctxt "#30015"
+msgid "Video Properties"
+msgstr "Video Properties"
+
+msgctxt "#30016"
+msgid "Audio Properties"
+msgstr "Audio Properties"
+
+msgctxt "#30017"
+msgid "Subtitle Properties"
+msgstr "Subtitle Properties"
+
+msgctxt "#30030"
+msgid "Preferred Audio Language"
+msgstr "Preferred Audio Language"
+
+msgctxt "#30031"
+msgid "Preferred Subtitle Language"
+msgstr "Preferred Subtitle Language"
+
+msgctxt "#30032"
+msgid "Off"
+msgstr "Off"
+
 msgctxt "#30050"
 msgid "Home"
 msgstr "Home"
