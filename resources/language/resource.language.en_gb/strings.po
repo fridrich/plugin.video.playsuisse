@@ -71,6 +71,14 @@ msgctxt "#30038"
 msgid "Documentary"
 msgstr "Documentary"
 
+msgctxt "#30040"
+msgid "Enable Back-to-Fullscreen on Home screen"
+msgstr "Enable Back-to-Fullscreen on Home screen"
+
+msgctxt "#30041"
+msgid "When a video is playing in the background, pressing Back on the Home screen will return to the video, exactly like PVR."
+msgstr "When a video is playing in the background, pressing Back on the Home screen will return to the video, exactly like PVR."
+
 msgctxt "#30050"
 msgid "Home"
 msgstr "Home"

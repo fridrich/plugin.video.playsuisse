@@ -44,6 +44,11 @@
 					<default>true</default>
 					<control type="toggle"/>
 				</setting>
+				<setting id="enable_keymap" type="boolean" label="30040" help="30041">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
 			</group>
 		</category>
 		<category id="Audio" label="30016" help="">

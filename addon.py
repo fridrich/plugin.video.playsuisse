@@ -343,8 +343,56 @@ def handle_login():
         )
 
 
+def handle_keymap_sync():
+    """Manages creation or removal of the custom Home-to-Fullscreen keymap."""
+    import os
+    import xbmcvfs
+    keymaps_dir = xbmcvfs.translatePath("special://profile/keymaps/")
+    keymap_file = os.path.join(keymaps_dir, "playsuisse_keymap.xml")
+
+    enable_keymap = ADDON.getSetting("enable_keymap") == "true"
+
+    if enable_keymap:
+        if not os.path.exists(keymaps_dir):
+            try:
+                os.makedirs(keymaps_dir)
+            except Exception:
+                pass
+
+        if not os.path.exists(keymap_file):
+            keymap_content = """<?xml version="1.0" encoding="UTF-8"?>
+<keymap>
+  <Home>
+    <keyboard>
+      <back>Fullscreen</back>
+      <backspace>Fullscreen</backspace>
+    </keyboard>
+    <remote>
+      <back>Fullscreen</back>
+    </remote>
+  </Home>
+</keymap>
+"""
+            try:
+                with open(keymap_file, "w") as f:
+                    f.write(keymap_content)
+                xbmc.log("PlaySuisse: Successfully wrote custom Home-to-Fullscreen keymap.", xbmc.LOGINFO)
+            except Exception as e:
+                xbmc.log(f"PlaySuisse: Failed to write custom keymap: {e}", xbmc.LOGERROR)
+    else:
+        if os.path.exists(keymap_file):
+            try:
+                os.remove(keymap_file)
+                xbmc.log("PlaySuisse: Successfully removed custom Home-to-Fullscreen keymap.", xbmc.LOGINFO)
+            except Exception as e:
+                xbmc.log(f"PlaySuisse: Failed to remove custom keymap: {e}", xbmc.LOGERROR)
+
+
 def run():
     """Main routing and execution logic."""
+    # Synchronize keymap with settings
+    handle_keymap_sync()
+
     params = dict(parse_qsl(sys.argv[2][1:]))
     mode = params.get("mode")
     item_id = params.get("id")
