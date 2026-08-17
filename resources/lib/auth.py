@@ -28,8 +28,23 @@ class PlaySuisseAuth:
 
     def __init__(self, addon):
         self.addon = addon
-        self.session_file = xbmcvfs.translatePath("special://profile/addon_data/plugin.video.playsuisse/session.json")
-        self.credentials_file = xbmcvfs.translatePath("special://profile/addon_data/plugin.video.playsuisse/credentials.json")
+
+        # Resolve the official profile directory for cross-device compatibility
+        profile_dir = xbmcvfs.translatePath(self.addon.getAddonInfo("profile"))
+        if not os.path.exists(profile_dir):
+            try:
+                os.makedirs(profile_dir)
+            except Exception:
+                pass
+
+        self.session_file = os.path.join(profile_dir, "session.json")
+        self.credentials_file = os.path.join(profile_dir, "credentials.json")
+
+        # Log the expected path for easy debugging on any new device
+        msg1 = f"PlaySuisseAuth: Profile dir: {profile_dir}"
+        msg2 = f"PlaySuisseAuth: Expected credentials path: {self.credentials_file}"
+        xbmc.log(msg1, xbmc.LOGINFO)
+        xbmc.log(msg2, xbmc.LOGINFO)
 
     def load_credentials(self):
         """Loads email and password from settings or the private credentials file."""
