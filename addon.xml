@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.playsuisse" name="Play Suisse" version="0.0.1" provider-name="Fridrich Strba">
+<addon id="plugin.video.playsuisse" name="Play Suisse" version="0.0.2" provider-name="Fridrich Strba">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
     <import addon="script.module.requests" version="2.25.1"/>
@@ -9,14 +9,16 @@
     <provides>video</provides>
   </extension>
   <extension point="xbmc.addon.metadata">
-    <summary lang="fr_FR">Play Suisse vidéothèque</summary>
+    <summary lang="fr_CH">Play Suisse vidéothèque</summary>
     <summary lang="en_GB">Play Suisse video library</summary>
-    <summary lang="de_DE">Play Suisse Videobibliothek</summary>
-    <summary lang="it_IT">Videoteca Play Suisse</summary>
-    <description lang="fr_FR">Avec Play Suisse vous pouvez regarder les vidéos de la plateforme de streaming de la SSR.</description>
+    <summary lang="de_CH">Play Suisse Videobibliothek</summary>
+    <summary lang="it_CH">Videoteca Play Suisse</summary>
+    <summary lang="rm_CH">Bibliotega da videos Play Suisse</summary>
+    <description lang="fr_CH">Avec Play Suisse vous pouvez regarder les vidéos de la plateforme de streaming de la SSR.</description>
     <description lang="en_GB">Play Suisse allows you to watch content from the Swiss Broadcasting Corporation streaming platform.</description>
-    <description lang="de_DE">Mit Play Suisse können Sie den Inhalt der SRG SSR Streaming-Plattform anschauen.</description>
-    <description lang="it_IT">Play Suisse ti permette di accedere alla videoteca della piattaforma SSR.</description>
+    <description lang="de_CH">Mit Play Suisse können Sie den Inhalt der SRG SSR Streaming-Plattform anschauen.</description>
+    <description lang="it_CH">Play Suisse ti permette di accedere alla videoteca della piattaforma SSR.</description>
+    <description lang="rm_CH">Cun Play Suisse pudais Vus tschertgar e guardar films, serias e documentaris da la plattafurma da streaming da la SSR.</description>
     <disclaimer lang="en_GB">Some content requires login and is geo-blocked to Switzerland.</disclaimer>
     <language>fr</language>
     <platform>all</platform>
