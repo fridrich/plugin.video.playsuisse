@@ -141,11 +141,11 @@ class PlaySuisseAuth:
                     except Exception as login_err:
                         xbmc.log(f"PlaySuisseAuth: Non-interactive login failed: {login_err}", xbmc.LOGERROR)
 
-                        # Inform user about the failure, but leave credentials.json intact for correction
+                        # Inform user about the failure, pointing them to gen_session.py
                         import xbmcgui
                         xbmcgui.Dialog().ok(
                             self.addon.getAddonInfo('name'),
-                            "Failed to log in with the credentials in credentials.json. Please verify them."
+                            self.addon.getLocalizedString(30105)
                         )
             except Exception as e:
                 xbmc.log(f"PlaySuisseAuth: Error reading credentials file: {e}", xbmc.LOGERROR)
