@@ -106,8 +106,19 @@ class PlaySuisseAuth:
         # 1. Check if a temporary credentials.json exists for non-interactive login
         if os.path.exists(self.credentials_file):
             try:
-                with open(self.credentials_file, "r") as f:
-                    data = json.load(f)
+                with open(self.credentials_file, "r", encoding="utf-8", errors="ignore") as f:
+                    raw_content = f.read()
+
+                # Robust JSON pre-processing: escape single backslashes to handle unescaped characters in passwords
+                import re
+                processed_content = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', raw_content)
+
+                try:
+                    data = json.loads(processed_content)
+                except Exception as json_err:
+                    xbmc.log(f"PlaySuisseAuth: Strict JSON parse failed, trying raw: {json_err}", xbmc.LOGDEBUG)
+                    data = json.loads(raw_content)
+
                 email = data.get("email")
                 password = data.get("password")
 
