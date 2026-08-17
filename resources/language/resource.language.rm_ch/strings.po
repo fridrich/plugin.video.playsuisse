@@ -1,5 +1,5 @@
 # Kodi Media Center language file
-# Addon Name: Play Suisse
+# Addon Name: Play+Suisse
 # Addon id: plugin.video.playsuisse
 # Addon Provider: Fridrich Strba
 msgid ""
@@ -123,8 +123,8 @@ msgid "Failed to log in. Please check credentials in addon settings."
 msgstr "S'annunziar betg reussì. Controllai las datas d'access en las preferenzas da l'addon."
 
 msgctxt "#30101"
-msgid "Play Suisse login required. Please configure your email and password in settings."
-msgstr "Access obligatori tar Play Suisse. Configurai l'e-posta e la plasidra en las preferenzas."
+msgid "Play+Suisse login required. Please configure your email and password in settings."
+msgstr "Access obligatori tar Play+Suisse. Configurai l'e-posta e la plasidra en las preferenzas."
 
 msgctxt "#30102"
 msgid "Authentication successful! Your credentials have been verified."
