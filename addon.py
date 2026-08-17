@@ -49,9 +49,9 @@ def main_menu():
 
     # If authenticated, show personalized My List and Continue Watching
     if id_token:
-        # 2. My List (String ID 30035: My List)
+        # 2. My List (Page ID: my_list)
         mylist_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30035))
-        mylist_url = build_url({"mode": "watchlist", "id": "watchlist", "title": ADDON.getLocalizedString(30035)})
+        mylist_url = build_url({"mode": "page", "id": "my_list", "title": ADDON.getLocalizedString(30035)})
         xbmcplugin.addDirectoryItem(ADDON_HANDLE, mylist_url, mylist_item, isFolder=True)
 
         # 3. Continue Watching (String ID 30036: Continue Watching)
@@ -130,7 +130,18 @@ def list_page(page_id, page_title):
 
 def list_module(page_id, module_idx):
     """Lists assets inside a specific module of a page."""
-    page_data = api.get_page(page_id)
+    # Check if we have an authenticated session silently
+    id_token = None
+    try:
+        from resources.lib.auth import PlaySuisseAuth
+        auth_mgr = PlaySuisseAuth(ADDON)
+        import os
+        if os.path.exists(auth_mgr.session_file):
+            id_token = auth_mgr.get_token()
+    except Exception:
+        pass
+
+    page_data = api.get_page(page_id, token=id_token)
     modules = page_data.get("modules") or []
     try:
         module = modules[int(module_idx)]
