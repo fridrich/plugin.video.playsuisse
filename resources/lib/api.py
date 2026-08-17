@@ -223,6 +223,7 @@ class PlaySuisseAPI:
             assetV2(id: $assetId) {
                 id
                 name
+                primaryLanguage
                 description
                 descriptionLong
                 year

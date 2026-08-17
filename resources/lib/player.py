@@ -85,4 +85,11 @@ class PlaySuissePlayer:
         play_item.setProperty("inputstream", ia)
         play_item.setProperty(f"{ia}.manifest_type", "hls")
 
+        # Flag original audio language for inputstream.adaptive
+        # to append "(original)"
+        original_lang = asset_data.get("primaryLanguage")
+        if original_lang:
+            prop = f"{ia}.original_audio_language"
+            play_item.setProperty(prop, original_lang)
+
         xbmcplugin.setResolvedUrl(handle, True, play_item)
