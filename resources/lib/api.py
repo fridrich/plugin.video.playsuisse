@@ -96,7 +96,7 @@ class PlaySuisseAPI:
             })
         return sorted(results, key=lambda x: x["title"])
 
-    def get_page(self, page_id):
+    def get_page(self, page_id, token=None):
         """Retrieves a specific page's modules and their asset items."""
         q = """
         query GetPage($pageId: ID!) {
@@ -136,7 +136,7 @@ class PlaySuisseAPI:
             }
         }
         """
-        data = self._query(q, {"pageId": page_id})
+        data = self._query(q, {"pageId": page_id}, token=token)
         page = data.get("pageV2") or {}
         modules_list = []
         for mod in page.get("modules", []):

@@ -30,18 +30,57 @@ def build_url(query):
     return f"{BASE_URL}?{urlencode(query)}"
 
 def main_menu():
-    """Renders the main menu of the addon."""
-    # 1. Categories Folder (String ID 30010: General/Categories)
+    """Renders the main menu of the addon mimicking the official web portal."""
+    # Check if we have an authenticated session silently
+    id_token = None
+    try:
+        from resources.lib.auth import PlaySuisseAuth
+        auth_mgr = PlaySuisseAuth(ADDON)
+        import os
+        if os.path.exists(auth_mgr.session_file):
+            id_token = auth_mgr.get_token()
+    except Exception as e:
+        xbmc.log(f"PlaySuisse: Main menu session check failed: {e}", xbmc.LOGDEBUG)
+
+    # 1. Home / Highlights (Page ID: homepage)
+    home_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30050))
+    home_url = build_url({"mode": "page", "id": "homepage", "title": ADDON.getLocalizedString(30050)})
+    xbmcplugin.addDirectoryItem(ADDON_HANDLE, home_url, home_item, isFolder=True)
+
+    # If authenticated, show personalized My List and Continue Watching
+    if id_token:
+        # 2. My List (String ID 30035: My List)
+        mylist_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30035))
+        mylist_url = build_url({"mode": "watchlist", "id": "watchlist", "title": ADDON.getLocalizedString(30035)})
+        xbmcplugin.addDirectoryItem(ADDON_HANDLE, mylist_url, mylist_item, isFolder=True)
+
+        # 3. Continue Watching (String ID 30036: Continue Watching)
+        resume_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30036))
+        resume_url = build_url({"mode": "watchlist", "id": "resume", "title": ADDON.getLocalizedString(30036)})
+        xbmcplugin.addDirectoryItem(ADDON_HANDLE, resume_url, resume_item, isFolder=True)
+
+    # 4. Fiction (Page ID: fiction)
+    fiction_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30037))
+    fiction_url = build_url({"mode": "page", "id": "fiction", "title": ADDON.getLocalizedString(30037)})
+    xbmcplugin.addDirectoryItem(ADDON_HANDLE, fiction_url, fiction_item, isFolder=True)
+
+    # 5. Documentaries (Page ID: documentary)
+    doc_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30038))
+    doc_url = build_url({"mode": "page", "id": "documentary", "title": ADDON.getLocalizedString(30038)})
+    xbmcplugin.addDirectoryItem(ADDON_HANDLE, doc_url, doc_item, isFolder=True)
+
+    # 6. Categories Folder (String ID 30010: Categories)
     cat_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30010))
     cat_url = build_url({"mode": "categories"})
     xbmcplugin.addDirectoryItem(ADDON_HANDLE, cat_url, cat_item, isFolder=True)
 
-    # 2. Search Folder (String ID 30085: Search)
+    # 7. Search Folder (String ID 30085: Search)
     search_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30085))
     search_url = build_url({"mode": "search_input"})
     xbmcplugin.addDirectoryItem(ADDON_HANDLE, search_url, search_item, isFolder=True)
 
     xbmcplugin.endOfDirectory(ADDON_HANDLE)
+
 
 def list_categories():
     """Lists all available categories."""
@@ -52,9 +91,21 @@ def list_categories():
         xbmcplugin.addDirectoryItem(ADDON_HANDLE, url, item, isFolder=True)
     xbmcplugin.endOfDirectory(ADDON_HANDLE)
 
+
 def list_page(page_id, page_title):
     """Renders modules or assets on a specific page."""
-    page_data = api.get_page(page_id)
+    # Check if we have an authenticated session silently
+    id_token = None
+    try:
+        from resources.lib.auth import PlaySuisseAuth
+        auth_mgr = PlaySuisseAuth(ADDON)
+        import os
+        if os.path.exists(auth_mgr.session_file):
+            id_token = auth_mgr.get_token()
+    except Exception:
+        pass
+
+    page_data = api.get_page(page_id, token=id_token)
     modules = page_data.get("modules") or []
 
     if not modules:
@@ -187,6 +238,44 @@ def list_series_episodes(series_id, series_title):
     xbmcplugin.setContent(ADDON_HANDLE, "episodes")
     xbmcplugin.endOfDirectory(ADDON_HANDLE)
 
+
+def handle_watchlist(list_type):
+    """Fetches the homepage and filters out the 'My List' or 'Continue Watching' module."""
+    id_token = None
+    try:
+        from resources.lib.auth import PlaySuisseAuth
+        auth_mgr = PlaySuisseAuth(ADDON)
+        id_token = auth_mgr.get_token()
+    except Exception as e:
+        xbmc.log(f"PlaySuisse: Watchlist authentication failed: {e}", xbmc.LOGERROR)
+        xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
+        return
+
+    if not id_token:
+        xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
+        return
+
+    page_data = api.get_page("homepage", token=id_token)
+    modules = page_data.get("modules") or []
+
+    target_module = None
+    for mod in modules:
+        title_lower = (mod.get("title") or "").lower()
+        if list_type == "watchlist":
+            if any(term in title_lower for term in ("ma liste", "meine liste", "la mia lista", "my list", "glista", "watchlist")):
+                target_module = mod
+                break
+        elif list_type == "resume":
+            if any(term in title_lower for term in ("reprendre", "weiterschauen", "continua", "continue", "cuntinuar")):
+                target_module = mod
+                break
+
+    if target_module and target_module.get("assets"):
+        list_assets(target_module["assets"])
+    else:
+        xbmcplugin.endOfDirectory(ADDON_HANDLE, True)
+
+
 def handle_search_input():
     """Prompts the user for a search term and lists matching assets."""
     keyboard = xbmc.Keyboard("", ADDON.getLocalizedString(30085))
@@ -254,6 +343,8 @@ def run():
         main_menu()
     elif mode == "categories":
         list_categories()
+    elif mode == "watchlist":
+        handle_watchlist(item_id)
     elif mode == "page":
         list_page(item_id, title)
     elif mode == "module":

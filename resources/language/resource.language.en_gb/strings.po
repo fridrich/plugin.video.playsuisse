@@ -55,6 +55,22 @@ msgctxt "#30032"
 msgid "Off"
 msgstr "Off"
 
+msgctxt "#30035"
+msgid "My List"
+msgstr "My List"
+
+msgctxt "#30036"
+msgid "Continue Watching"
+msgstr "Continue Watching"
+
+msgctxt "#30037"
+msgid "Fiction"
+msgstr "Fiction"
+
+msgctxt "#30038"
+msgid "Documentary"
+msgstr "Documentary"
+
 msgctxt "#30050"
 msgid "Home"
 msgstr "Home"
