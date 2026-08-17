@@ -1,0 +1,144 @@
+# Kodi Media Center language file
+# Addon Name: Play Suisse
+# Addon id: plugin.video.playsuisse
+# Addon Provider: Fridrich Strba
+msgid ""
+msgstr ""
+"Project-Id-Version: plugin.video.playsuisse\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: it\n"
+
+msgctxt "#30000"
+msgid "Email"
+msgstr "E-mail"
+
+msgctxt "#30001"
+msgid "Password"
+msgstr "Password"
+
+msgctxt "#30002"
+msgid "Prefer HD quality"
+msgstr "Preferisci qualità HD"
+
+msgctxt "#30005"
+msgid "Authenticate / Log in"
+msgstr "Autenticati / Accedi"
+
+msgctxt "#30010"
+msgid "General"
+msgstr "Generale"
+
+msgctxt "#30015"
+msgid "Video Properties"
+msgstr "Proprietà video"
+
+msgctxt "#30016"
+msgid "Audio Properties"
+msgstr "Proprietà audio"
+
+msgctxt "#30017"
+msgid "Subtitle Properties"
+msgstr "Proprietà sottotitoli"
+
+msgctxt "#30020"
+msgid "Language"
+msgstr "Lingua"
+
+msgctxt "#30021"
+msgid "Default / Auto"
+msgstr "Predefinito / Auto"
+
+msgctxt "#30022"
+msgid "German"
+msgstr "Tedesco"
+
+msgctxt "#30023"
+msgid "French"
+msgstr "Francese"
+
+msgctxt "#30024"
+msgid "Italian"
+msgstr "Italiano"
+
+msgctxt "#30025"
+msgid "Romansh"
+msgstr "Romancio"
+
+msgctxt "#30030"
+msgid "Preferred Audio Language"
+msgstr "Lingua audio preferita"
+
+msgctxt "#30031"
+msgid "Preferred Subtitle Language"
+msgstr "Lingua dei sottotitoli preferita"
+
+msgctxt "#30032"
+msgid "Off"
+msgstr "Disattivato"
+
+msgctxt "#30035"
+msgid "My List"
+msgstr "La mia lista"
+
+msgctxt "#30036"
+msgid "Continue Watching"
+msgstr "Continua a guardare"
+
+msgctxt "#30037"
+msgid "Fiction"
+msgstr "Finzione"
+
+msgctxt "#30038"
+msgid "Documentary"
+msgstr "Documentari"
+
+msgctxt "#30040"
+msgid "Enable Back-to-Fullscreen on Home screen"
+msgstr "Attiva il ritorno a schermo intero sulla schermata iniziale"
+
+msgctxt "#30041"
+msgid "When a video is playing in the background, pressing Back on the Home screen will return to the video, exactly like PVR."
+msgstr "Quando un video è in riproduzione in background, premendo Indietro sulla schermata iniziale si tornerà al video, proprio come con il PVR."
+
+msgctxt "#30050"
+msgid "Home"
+msgstr "Pagina iniziale"
+
+msgctxt "#30051"
+msgid "Movies"
+msgstr "Film"
+
+msgctxt "#30052"
+msgid "Series"
+msgstr "Serie"
+
+msgctxt "#30085"
+msgid "Search"
+msgstr "Cerca"
+
+msgctxt "#30100"
+msgid "Failed to log in. Please check credentials in addon settings."
+msgstr "Accesso non riuscito. Controlla le credenziali nelle impostazioni dell'addon."
+
+msgctxt "#30101"
+msgid "Play Suisse login required. Please configure your email and password in settings."
+msgstr "Accesso a Play Suisse richiesto. Configura e-mail e password nelle impostazioni."
+
+msgctxt "#30102"
+msgid "Authentication successful! Your credentials have been verified."
+msgstr "Autenticazione riuscita! Le tue credenziali sono state verificate."
+
+msgctxt "#30103"
+msgid "Invalid email address. Please try again."
+msgstr "Indirizzo e-mail non valido. Riprova."
+
+msgctxt "#30104"
+msgid "Invalid password. Please try again."
+msgstr "Password non valida. Riprova."
+
+msgctxt "#30105"
+msgid "Login failed on this device (possibly blocked by Cloudflare). To bypass this block, you can generate a session on your PC using the included tool 'gen_session.py' and copy 'session.json' to this device's profile directory. See README.md (Method C) for details."
+msgstr "Accesso fallito su questo dispositivo (probabilmente bloccato da Cloudflare). Per aggirare questo blocco, puoi generare una sessione sul tuo PC utilizzando lo strumento incluso 'gen_session.py' e copiare 'session.json' nella cartella del profilo di questo dispositivo. Vedi README.md (Metodo C) per i dettagli."
+

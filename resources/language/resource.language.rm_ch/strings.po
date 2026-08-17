@@ -1,0 +1,144 @@
+# Kodi Media Center language file
+# Addon Name: Play Suisse
+# Addon id: plugin.video.playsuisse
+# Addon Provider: Fridrich Strba
+msgid ""
+msgstr ""
+"Project-Id-Version: plugin.video.playsuisse\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: rm\n"
+
+msgctxt "#30000"
+msgid "Email"
+msgstr "E-posta"
+
+msgctxt "#30001"
+msgid "Password"
+msgstr "Plasidra"
+
+msgctxt "#30002"
+msgid "Prefer HD quality"
+msgstr "Preferir qualitad HD"
+
+msgctxt "#30005"
+msgid "Authenticate / Log in"
+msgstr "Autentifitgar / S'annunziar"
+
+msgctxt "#30010"
+msgid "General"
+msgstr "General"
+
+msgctxt "#30015"
+msgid "Video Properties"
+msgstr "Proprietads da video"
+
+msgctxt "#30016"
+msgid "Audio Properties"
+msgstr "Proprietads d'audio"
+
+msgctxt "#30017"
+msgid "Subtitle Properties"
+msgstr "Proprietads da suttitels"
+
+msgctxt "#30020"
+msgid "Language"
+msgstr "Lingua"
+
+msgctxt "#30021"
+msgid "Default / Auto"
+msgstr "Standard / Auto"
+
+msgctxt "#30022"
+msgid "German"
+msgstr "Tudestg"
+
+msgctxt "#30023"
+msgid "French"
+msgstr "Franzos"
+
+msgctxt "#30024"
+msgid "Italian"
+msgstr "Talian"
+
+msgctxt "#30025"
+msgid "Romansh"
+msgstr "Rumantsch"
+
+msgctxt "#30030"
+msgid "Preferred Audio Language"
+msgstr "Lingua d'audio preferida"
+
+msgctxt "#30031"
+msgid "Preferred Subtitle Language"
+msgstr "Lingua da suttitels preferida"
+
+msgctxt "#30032"
+msgid "Off"
+msgstr "Deaktivà"
+
+msgctxt "#30035"
+msgid "My List"
+msgstr "Mia glista"
+
+msgctxt "#30036"
+msgid "Continue Watching"
+msgstr "Cuntinuar la lectura"
+
+msgctxt "#30037"
+msgid "Fiction"
+msgstr "Fictiun"
+
+msgctxt "#30038"
+msgid "Documentary"
+msgstr "Documentari"
+
+msgctxt "#30040"
+msgid "Enable Back-to-Fullscreen on Home screen"
+msgstr "Activar return a plen-scran sin il scran d'accumpagnament"
+
+msgctxt "#30041"
+msgid "When a video is playing in the background, pressing Back on the Home screen will return to the video, exactly like PVR."
+msgstr "Cura ch'in video tuna en il fund, smatgar Midar sin il scran principal maina anavos tar il video, gist sco cun il PVR."
+
+msgctxt "#30050"
+msgid "Home"
+msgstr "Pagina d'entrada"
+
+msgctxt "#30051"
+msgid "Movies"
+msgstr "Films"
+
+msgctxt "#30052"
+msgid "Series"
+msgstr "Serias"
+
+msgctxt "#30085"
+msgid "Search"
+msgstr "Tschertgar"
+
+msgctxt "#30100"
+msgid "Failed to log in. Please check credentials in addon settings."
+msgstr "S'annunziar betg reussì. Controllai las datas d'access en las preferenzas da l'addon."
+
+msgctxt "#30101"
+msgid "Play Suisse login required. Please configure your email and password in settings."
+msgstr "Access obligatori tar Play Suisse. Configurai l'e-posta e la plasidra en las preferenzas."
+
+msgctxt "#30102"
+msgid "Authentication successful! Your credentials have been verified."
+msgstr "Autentifitgaziun reussida! Vossas datas d'access èn vegnidas verifitgadas."
+
+msgctxt "#30103"
+msgid "Invalid email address. Please try again."
+msgstr "Adressa d'e-posta nunvalida. Emprovai danovamain."
+
+msgctxt "#30104"
+msgid "Invalid password. Please try again."
+msgstr "Plasidra nunvalida. Emprovai danovamain."
+
+msgctxt "#30105"
+msgid "Login failed on this device (possibly blocked by Cloudflare). To bypass this block, you can generate a session on your PC using the included tool 'gen_session.py' and copy 'session.json' to this device's profile directory. See README.md (Method C) for details."
+msgstr "S'annunziar betg reussì sin quest apparat (probablamain bloccà da Cloudflare). Per evitar quai, pudais Vus generar ina sessiun sin Voss PC cun l'instramaint 'gen_session.py' e copiar 'session.json' en il directori da profil da quest apparat. Vesair README.md (Metoda C) per detagls."
+
