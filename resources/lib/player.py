@@ -20,7 +20,7 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
     """Monitors playback to dynamically configure preferred audio and subtitle languages."""
 
     def __init__(self, addon, primary_lang):
-        super().__init__()
+        xbmc.Player.__init__(self)
         self.addon = addon
         self.primary_lang = primary_lang
         self.configured = False
