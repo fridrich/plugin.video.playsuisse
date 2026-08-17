@@ -57,6 +57,18 @@ If typing a complex password using a standard television remote control is too c
 4. Launch any video or click "Authenticate" inside Play Suisse. 
 5. The add-on instantly reads `credentials.json`, authenticates with SRG SSR, generates your secure session tokens, and **immediately deletes the plaintext `credentials.json` file from your disk**.
 
+### Method C: Session Transfer (Workaround for Cloudflare Blocks on Raspberry Pi / OSMC)
+If you are running Kodi on a device with an older Python/OpenSSL stack (such as **OSMC on a Raspberry Pi**), Cloudflare may protect the login portal with a `"Just a moment..."` browser challenge and block direct connection handshakes with a **403 Forbidden** error. 
+
+Because we use standard **OAuth2 Refresh Tokens**, you can easily bypass this security check by generating the session on your PC and copying it over:
+1. Install and log in to the Play Suisse add-on on your **PC / Laptop** (where standard browser-level TLS fingerprints are accepted).
+2. Locate the generated **`session.json`** file inside your PC's userdata folder:
+   * **Windows:** `%APPDATA%\Kodi\userdata\addon_data\plugin.video.playsuisse\session.json`
+   * **macOS:** `~/Library/Application Support/Kodi/userdata/addon_data/plugin.video.playsuisse/session.json`
+   * **Linux:** `~/.kodi/userdata/addon_data/plugin.video.playsuisse/session.json`
+3. Copy this **`session.json`** file directly into your Raspberry Pi's profile userdata folder (under `addon_data/plugin.video.playsuisse/`).
+4. **Result:** The add-on on your Raspberry Pi will immediately load and validate the session tokens, allowing you to stream seamlessly without ever needing to perform the blocked login handshake on the Pi itself!
+
 ---
 
 ## 📜 License
