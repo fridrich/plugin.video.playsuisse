@@ -117,6 +117,25 @@ class PlaySuisseAPI:
                             thumbnail16x9 {
                                 url
                             }
+                            watch {
+                                ... on AssetMediaV2 {
+                                    progress {
+                                        position
+                                        completed
+                                    }
+                                }
+                                ... on AssetV2 {
+                                    id
+                                    watch {
+                                        ... on AssetMediaV2 {
+                                            progress {
+                                                position
+                                                completed
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     ... on ModuleDynamicCollection {
@@ -129,6 +148,25 @@ class PlaySuisseAPI:
                             duration
                             thumbnail16x9 {
                                 url
+                            }
+                            watch {
+                                ... on AssetMediaV2 {
+                                    progress {
+                                        position
+                                        completed
+                                    }
+                                }
+                                ... on AssetV2 {
+                                    id
+                                    watch {
+                                        ... on AssetMediaV2 {
+                                            progress {
+                                                position
+                                                completed
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -174,6 +212,25 @@ class PlaySuisseAPI:
                             thumbnail16x9 {
                                 url
                             }
+                            watch {
+                                ... on AssetMediaV2 {
+                                    progress {
+                                        position
+                                        completed
+                                    }
+                                }
+                                ... on AssetV2 {
+                                    id
+                                    watch {
+                                        ... on AssetMediaV2 {
+                                            progress {
+                                                position
+                                                completed
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     ... on ModuleDynamicCollection {
@@ -186,6 +243,25 @@ class PlaySuisseAPI:
                             duration
                             thumbnail16x9 {
                                 url
+                            }
+                            watch {
+                                ... on AssetMediaV2 {
+                                    progress {
+                                        position
+                                        completed
+                                    }
+                                }
+                                ... on AssetV2 {
+                                    id
+                                    watch {
+                                        ... on AssetMediaV2 {
+                                            progress {
+                                                position
+                                                completed
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -239,6 +315,25 @@ class PlaySuisseAPI:
                     type
                     url
                 }
+                watch {
+                    ... on AssetMediaV2 {
+                        progress {
+                            position
+                            completed
+                        }
+                    }
+                    ... on AssetV2 {
+                        id
+                        watch {
+                            ... on AssetMediaV2 {
+                                progress {
+                                    position
+                                    completed
+                                }
+                            }
+                        }
+                    }
+                }
                 episodes {
                     id
                     name
@@ -249,6 +344,25 @@ class PlaySuisseAPI:
                     seasonNumber
                     thumbnail16x9 {
                         url
+                    }
+                    watch {
+                        ... on AssetMediaV2 {
+                            progress {
+                                position
+                                    completed
+                            }
+                        }
+                        ... on AssetV2 {
+                            id
+                            watch {
+                                ... on AssetMediaV2 {
+                                    progress {
+                                        position
+                                        completed
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
