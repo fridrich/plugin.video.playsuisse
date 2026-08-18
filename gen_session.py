@@ -199,12 +199,59 @@ Password Input Methods (to prevent shell-escaping issues with special characters
     if not id_token:
         error("Step 5 failed (TOKEN_TRADE_FAILED).")
 
+    # Step 6: Pre-fetch active profile_id
+    log("Step 6: Fetching active profile ID...")
+    profile_id = None
+    try:
+        graphql_url = "https://www.playsuisse.ch/api/graphql?complex_subs=true&stipo_env=production2&discontinuity=true"
+        query_payload = [
+            {
+                "operationName": "AppConfig",
+                "variables": {},
+                "extensions": {
+                    "persistedQuery": {
+                        "version": 1,
+                        "sha256Hash": "3cdb8a136dccdaee568e872c55c2d30578a919a3f02656b335bec80a88129d89"
+                    }
+                }
+            },
+            {
+                "operationName": "UserProfileWithPreferencesAndUserInfo",
+                "variables": {},
+                "extensions": {
+                    "persistedQuery": {
+                        "version": 1,
+                        "sha256Hash": "93b24b6d887b532304d2fbc6a422b52092d853edf17cf33488ccf0218f8c6e3c"
+                    }
+                }
+            }
+        ]
+        headers = {
+            "Authorization": f"Bearer {id_token}",
+            "Content-Type": "application/json",
+            "x-playsuisse-app": "id=web&version=1.1.27",
+            "x-playsuisse-locale": "fr"
+        }
+        graphql_res = session.post(graphql_url, json=query_payload, headers=headers, timeout=15)
+        if graphql_res.status_code == 200:
+            res_data = graphql_res.json()
+            if res_data and isinstance(res_data, list) and len(res_data) > 1:
+                profile_data = res_data[1].get("data", {}).get("userProfile", {})
+                profile_id = profile_data.get("profileId")
+                if profile_id:
+                    log(f"Active profile ID pre-fetched: {profile_id}")
+    except Exception as e:
+        log(f"Warning: Could not pre-fetch profile ID: {e}")
+
     # Output clean JSON to stdout for piping
     output_data = {
         "id_token": id_token,
         "refresh_token": refresh_token,
         "timestamp": time.time()
     }
+    if profile_id:
+        output_data["profile_id"] = profile_id
+
     sys.stdout.write(json.dumps(output_data, indent=2) + "\n")
     sys.stdout.flush()
     log("Session generation successful!")
