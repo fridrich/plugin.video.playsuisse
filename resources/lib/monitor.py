@@ -288,21 +288,34 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                             }
 
                         # Otherwise, fetch the actual profileId from the backend using the persisted GraphQL query
-                        url = "https://www.playsuisse.ch/api/graphql"
-                        query_payload = [{
-                            "operationName": "UserProfileWithPreferencesAndUserInfo",
-                            "variables": {},
-                            "extensions": {
-                                "persistedQuery": {
-                                    "version": 1,
-                                    "sha256Hash": "93b24b6d887b532304d2fbc6a422b52092d853edf17cf33488ccf0218f8c6e3c"
+                        url = "https://www.playsuisse.ch/api/graphql?complex_subs=true&stipo_env=production2&discontinuity=true"
+                        query_payload = [
+                            {
+                                "operationName": "AppConfig",
+                                "variables": {},
+                                "extensions": {
+                                    "persistedQuery": {
+                                        "version": 1,
+                                        "sha256Hash": "3cdb8a136dccdaee568e872c55c2d30578a919a3f02656b335bec80a88129d89"
+                                    }
+                                }
+                            },
+                            {
+                                "operationName": "UserProfileWithPreferencesAndUserInfo",
+                                "variables": {},
+                                "extensions": {
+                                    "persistedQuery": {
+                                        "version": 1,
+                                        "sha256Hash": "93b24b6d887b532304d2fbc6a422b52092d853edf17cf33488ccf0218f8c6e3c"
+                                    }
                                 }
                             }
-                        }]
+                        ]
                         headers = {
                             "Authorization": "Bearer " + clean_token,
                             "Content-Type": "application/json",
                             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                            "x-playsuisse-app": "id=web&version=1.1.27",
                             "x-playsuisse-locale": "fr"
                         }
 
@@ -313,8 +326,8 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
 
                         with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
                             res_data = json.loads(response.read().decode("utf-8"))
-                            if res_data and isinstance(res_data, list):
-                                profile_data = res_data[0].get("data", {}).get("userProfile", {})
+                            if res_data and isinstance(res_data, list) and len(res_data) > 1:
+                                profile_data = res_data[1].get("data", {}).get("userProfile", {})
                                 profile_id = clean_str(profile_data.get("profileId"))
 
                                 # Cache the profile_id into session.json so we never have to fetch it again
