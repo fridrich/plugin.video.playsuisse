@@ -383,3 +383,37 @@ class PlaySuisseAPI:
         """
         data = self._query(q, {"assetId": asset_id}, token=token)
         return data.get("playbackSession") or {}
+
+    def add_to_my_list(self, asset_id, token=None):
+        """Adds an asset to the user's My List."""
+        q = """
+        mutation addToMyList($assetId: String!) {
+            addToMyList(assetId: $assetId) {
+                assetId
+            }
+        }
+        """
+        data = self._query(q, {"assetId": asset_id}, token=token)
+        return data.get("addToMyList") or {}
+
+    def remove_from_my_list(self, asset_id, token=None):
+        """Removes an asset from the user's My List."""
+        q = """
+        mutation removeFromMyList($assetId: String!) {
+            removeFromMyList(assetId: $assetId) {
+                assetId
+            }
+        }
+        """
+        data = self._query(q, {"assetId": asset_id}, token=token)
+        return data.get("removeFromMyList") or {}
+
+    def hide_from_continue_watching(self, asset_id, token=None):
+        """Hides an asset from the user's Continue Watching list."""
+        q = """
+        mutation hideFromContinueWatching($id: String!) {
+            hideAssetFromContinueWatching(id: $id)
+        }
+        """
+        data = self._query(q, {"id": asset_id}, token=token)
+        return data.get("hideAssetFromContinueWatching") or False

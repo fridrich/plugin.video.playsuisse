@@ -176,6 +176,29 @@ def get_resume_position(asset):
     return 0
 
 
+def get_asset_context_menu(asset_id, name):
+    """Builds custom context menu actions to add/remove My List and hide from Continue Watching."""
+    id_token = None
+    try:
+        from resources.lib.auth import PlaySuisseAuth
+        auth_mgr = PlaySuisseAuth(ADDON)
+        import os
+        if os.path.exists(auth_mgr.session_file):
+            id_token = auth_mgr.get_token()
+    except Exception:
+        pass
+
+    if not id_token:
+        return []
+
+    menu_items = [
+        ("Add to My List", f"RunPlugin({build_url({'mode': 'add_mylist', 'id': asset_id, 'title': name})})"),
+        ("Remove from My List", f"RunPlugin({build_url({'mode': 'remove_mylist', 'id': asset_id, 'title': name})})"),
+        ("Hide from Continue Watching", f"RunPlugin({build_url({'mode': 'hide_resume', 'id': asset_id, 'title': name})})")
+    ]
+    return menu_items
+
+
 def list_assets(assets):
     """Helper to convert GraphQL asset structures to Kodi ListItems."""
     for asset in assets:
@@ -204,6 +227,9 @@ def list_assets(assets):
             info["duration"] = int(duration)
 
         item.setInfo("video", info)
+
+        # Context menu actions (My List & Continue Watching)
+        item.addContextMenuItems(get_asset_context_menu(asset_id, name))
 
         # Thumbnail
         thumb = asset.get("thumbnail16x9") or {}
@@ -281,6 +307,9 @@ def list_series_episodes(series_id, series_title):
             info["duration"] = int(duration)
 
         item.setInfo("video", info)
+
+        # Context menu actions (My List & Continue Watching)
+        item.addContextMenuItems(get_asset_context_menu(ep_id, name))
 
         # Thumbnail
         thumb = ep.get("thumbnail16x9") or {}
@@ -469,6 +498,42 @@ def run():
         handle_login()
     elif mode == "play":
         player.resolve_and_play(ADDON_HANDLE, item_id, title)
+    elif mode == "add_mylist":
+        try:
+            from resources.lib.auth import PlaySuisseAuth
+            auth_mgr = PlaySuisseAuth(ADDON)
+            id_token = auth_mgr.get_token()
+            if id_token:
+                api.add_to_my_list(item_id, token=id_token)
+                xbmcgui.Dialog().notification("Play Suisse", f"Added '{title}' to My List")
+                xbmc.executebuiltin("Container.Refresh")
+        except Exception as e:
+            xbmc.log(f"PlaySuisse: Add to My List failed: {e}", xbmc.LOGERROR)
+            xbmcgui.Dialog().notification("Play Suisse", "Failed to add to My List")
+    elif mode == "remove_mylist":
+        try:
+            from resources.lib.auth import PlaySuisseAuth
+            auth_mgr = PlaySuisseAuth(ADDON)
+            id_token = auth_mgr.get_token()
+            if id_token:
+                api.remove_from_my_list(item_id, token=id_token)
+                xbmcgui.Dialog().notification("Play Suisse", f"Removed '{title}' from My List")
+                xbmc.executebuiltin("Container.Refresh")
+        except Exception as e:
+            xbmc.log(f"PlaySuisse: Remove from My List failed: {e}", xbmc.LOGERROR)
+            xbmcgui.Dialog().notification("Play Suisse", "Failed to remove from My List")
+    elif mode == "hide_resume":
+        try:
+            from resources.lib.auth import PlaySuisseAuth
+            auth_mgr = PlaySuisseAuth(ADDON)
+            id_token = auth_mgr.get_token()
+            if id_token:
+                api.hide_from_continue_watching(item_id, token=id_token)
+                xbmcgui.Dialog().notification("Play Suisse", f"Removed '{title}' from Continue Watching")
+                xbmc.executebuiltin("Container.Refresh")
+        except Exception as e:
+            xbmc.log(f"PlaySuisse: Hide from Continue Watching failed: {e}", xbmc.LOGERROR)
+            xbmcgui.Dialog().notification("Play Suisse", "Failed to remove from Continue Watching")
 
 
 if __name__ == "__main__":
