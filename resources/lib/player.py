@@ -7,6 +7,7 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 
+import os
 import xbmc
 import xbmcgui
 import xbmcplugin
@@ -31,7 +32,20 @@ class PlaySuissePlayer:
         xbmc.executebuiltin("ActivateWindow(busydialognocancel)")
         try:
             id_token = self.auth.get_token()
-            # 2. Fetch asset details containing medias with authorization token
+
+            # 2. Try to fetch playback session containing signed HLS URL and register play on server
+            hls_url = None
+            is_signed_url = False
+            try:
+                session_data = self.api.get_playback_session(asset_id, token=id_token)
+                playback_url = session_data.get("playbackUrl")
+                if playback_url:
+                    hls_url = playback_url
+                    is_signed_url = True
+            except Exception as e:
+                xbmc.log(f"PlaySuissePlayer: Playback session creation failed, falling back: {e}", xbmc.LOGWARNING)
+
+            # 3. Fetch asset details containing metadata (and media streams as fallback)
             asset_data = self.api.get_asset(asset_id, token=id_token)
         except Exception as e:
             xbmc.executebuiltin("Dialog.Close(busydialognocancel)")
@@ -54,13 +68,13 @@ class PlaySuissePlayer:
         finally:
             xbmc.executebuiltin("Dialog.Close(busydialognocancel)")
 
-        # 3. Locate the HLS stream
-        medias = asset_data.get("medias") or []
-        hls_url = None
-        for m in medias:
-            if m.get("type") == "HLS" and m.get("url"):
-                hls_url = m.get("url")
-                break
+        # 4. Locate the HLS stream if not already obtained from playback session
+        if not hls_url:
+            medias = asset_data.get("medias") or []
+            for m in medias:
+                if m.get("type") == "HLS" and m.get("url"):
+                    hls_url = m.get("url")
+                    break
 
         if not hls_url:
             xbmc.log(f"PlaySuissePlayer: No HLS stream found for asset {asset_id}", xbmc.LOGERROR)
@@ -72,11 +86,14 @@ class PlaySuissePlayer:
             )
             return
 
-        # 4. Sign/Authorize the HLS URL with our token
-        # Append id_token query parameter to authorize playback
-        authorized_url = hls_url + ("&" if "?" in hls_url else "?") + f"id_token={id_token}"
+        # 5. Authorize/Sign the HLS URL
+        if is_signed_url:
+            authorized_url = hls_url
+        else:
+            # Append id_token query parameter to authorize playback
+            authorized_url = hls_url + ("&" if "?" in hls_url else "?") + f"id_token={id_token}"
 
-        # 5. Configure inputstream.adaptive and setResolvedUrl
+        # 6. Configure inputstream.adaptive and setResolvedUrl
         helper = inputstreamhelper.Helper("hls")
         if not helper.check_inputstream():
             xbmc.log("PlaySuissePlayer: Unable to setup inputstream.adaptive", xbmc.LOGERROR)
@@ -99,5 +116,6 @@ class PlaySuissePlayer:
 
         # Run the playback monitor script in a separate background process
         # to select languages without delaying the video startup
-        monitor_script = xbmcvfs.translatePath("special://addon/plugin.video.playsuisse/resources/lib/monitor.py")
-        xbmc.executebuiltin(f"RunScript({monitor_script}, {original_lang})")
+        addon_path = xbmcvfs.translatePath(self.addon.getAddonInfo('path'))
+        monitor_script = os.path.join(addon_path, "resources", "lib", "monitor.py")
+        xbmc.executebuiltin(f'RunScript("{monitor_script}", "{original_lang}", "{asset_id}", "{title}")')

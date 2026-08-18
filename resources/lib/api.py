@@ -370,3 +370,16 @@ class PlaySuisseAPI:
         """
         data = self._query(q, {"assetId": asset_id}, token=token)
         return data.get("assetV2") or {}
+
+    def get_playback_session(self, asset_id, token=None):
+        """Creates a playback session on the server and retrieves the signed stream URL."""
+        q = """
+        mutation PlaybackSession($assetId: String!) {
+            playbackSession(assetId: $assetId) {
+                playbackUrl
+                thumbnailUrl(templated: true)
+            }
+        }
+        """
+        data = self._query(q, {"assetId": asset_id}, token=token)
+        return data.get("playbackSession") or {}
