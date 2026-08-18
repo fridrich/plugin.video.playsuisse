@@ -33,6 +33,91 @@ def build_url(query):
     return f"{BASE_URL}?{urlencode(query)}"
 
 
+MAIN_MENU_LANGUAGES = {
+    "de": {
+        "home": "Startseite",
+        "fiction": "Fiktion",
+        "documentary": "Docu",
+        "family": "Familie",
+        "music": "Musik",
+        "categories": "Themen",
+        "mylist": "Meine Liste",
+        "continue_watching": "Weiterschauen",
+        "search": "Suche"
+    },
+    "fr": {
+        "home": "Accueil",
+        "fiction": "Fiction",
+        "documentary": "Documentaire",
+        "family": "Famille",
+        "music": "Musique",
+        "categories": "Catégories",
+        "mylist": "Ma liste",
+        "continue_watching": "Reprendre la lecture",
+        "search": "Recherche"
+    },
+    "it": {
+        "home": "Home",
+        "fiction": "Fiction",
+        "documentary": "Documentari",
+        "family": "Famiglia",
+        "music": "Musica",
+        "categories": "Categorie",
+        "mylist": "La mia lista",
+        "continue_watching": "Continua a guardare",
+        "search": "Cerca"
+    },
+    "rm": {
+        "home": "Home",
+        "fiction": "Ficziun",
+        "documentary": "Documentaziuns",
+        "family": "Famiglia",
+        "music": "Musica",
+        "categories": "Temas",
+        "mylist": "Mia glista",
+        "continue_watching": "Continuar la lectura",
+        "search": "Tschertgar"
+    },
+    "en": {
+        "home": "Home",
+        "fiction": "Fiction",
+        "documentary": "Documentary",
+        "family": "Family",
+        "music": "Music",
+        "categories": "Categories",
+        "mylist": "My List",
+        "continue_watching": "Continue Watching",
+        "search": "Search"
+    }
+}
+
+
+def get_main_menu_language():
+    """Determines the active language for the main menu labels."""
+    lang_setting = ADDON.getSetting("language")
+    if lang_setting and lang_setting != "auto":
+        return lang_setting
+
+    # Fallback to Kodi's language
+    kodi_lang = xbmc.getLanguage(xbmc.ISO_639_1, True)
+    if kodi_lang in ("de", "fr", "it", "rm"):
+        return kodi_lang
+
+    # Check for long/variant codes
+    kodi_lang_lower = kodi_lang.lower()
+    if "de" in kodi_lang_lower:
+        return "de"
+    if "fr" in kodi_lang_lower:
+        return "fr"
+    if "it" in kodi_lang_lower:
+        return "it"
+    if "rm" in kodi_lang_lower:
+        return "rm"
+
+    # Default/fallback to English
+    return "en"
+
+
 def main_menu():
     """Renders the main menu of the addon mimicking the official web portal."""
     # Check if we have an authenticated session silently
@@ -45,40 +130,53 @@ def main_menu():
     except Exception as e:
         xbmc.log(f"PlaySuisse: Main menu session check failed: {e}", xbmc.LOGDEBUG)
 
-    # 1. Home / Highlights (Page ID: homepage)
-    home_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30050))
-    home_url = build_url({"mode": "page", "id": "homepage", "title": ADDON.getLocalizedString(30050)})
+    lang = get_main_menu_language()
+    labels = MAIN_MENU_LANGUAGES.get(lang, MAIN_MENU_LANGUAGES["en"])
+
+    # 1. Startseite (Page ID: homepage)
+    home_item = xbmcgui.ListItem(label=labels["home"])
+    home_url = build_url({"mode": "page", "id": "homepage", "title": labels["home"]})
     xbmcplugin.addDirectoryItem(ADDON_HANDLE, home_url, home_item, isFolder=True)
 
-    # If authenticated, show personalized My List and Continue Watching
-    if id_token:
-        # 2. My List (Page ID: my_list)
-        mylist_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30035))
-        mylist_url = build_url({"mode": "page", "id": "my_list", "title": ADDON.getLocalizedString(30035)})
-        xbmcplugin.addDirectoryItem(ADDON_HANDLE, mylist_url, mylist_item, isFolder=True)
-
-        # 3. Continue Watching (Page ID: continue_watching)
-        resume_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30036))
-        resume_url = build_url({"mode": "watchlist", "id": "resume", "title": ADDON.getLocalizedString(30036)})
-        xbmcplugin.addDirectoryItem(ADDON_HANDLE, resume_url, resume_item, isFolder=True)
-
-    # 4. Fiction (Page ID: fiction)
-    fiction_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30037))
-    fiction_url = build_url({"mode": "page", "id": "fiction", "title": ADDON.getLocalizedString(30037)})
+    # 2. Fiktion (Page ID: fiction)
+    fiction_item = xbmcgui.ListItem(label=labels["fiction"])
+    fiction_url = build_url({"mode": "page", "id": "fiction", "title": labels["fiction"]})
     xbmcplugin.addDirectoryItem(ADDON_HANDLE, fiction_url, fiction_item, isFolder=True)
 
-    # 5. Documentaries (Page ID: documentary)
-    doc_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30038))
-    doc_url = build_url({"mode": "page", "id": "documentary", "title": ADDON.getLocalizedString(30038)})
+    # 3. Docu (Page ID: documentary)
+    doc_item = xbmcgui.ListItem(label=labels["documentary"])
+    doc_url = build_url({"mode": "page", "id": "documentary", "title": labels["documentary"]})
     xbmcplugin.addDirectoryItem(ADDON_HANDLE, doc_url, doc_item, isFolder=True)
 
-    # 4. Categories Folder (String ID 30010: Categories)
-    cat_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30010))
+    # 4. Familie (Page ID: family)
+    family_item = xbmcgui.ListItem(label=labels["family"])
+    family_url = build_url({"mode": "page", "id": "family", "title": labels["family"]})
+    xbmcplugin.addDirectoryItem(ADDON_HANDLE, family_url, family_item, isFolder=True)
+
+    # 5. Musik (Page ID: music)
+    music_item = xbmcgui.ListItem(label=labels["music"])
+    music_url = build_url({"mode": "page", "id": "music", "title": labels["music"]})
+    xbmcplugin.addDirectoryItem(ADDON_HANDLE, music_url, music_item, isFolder=True)
+
+    # 6. Themen (Categories Folder)
+    cat_item = xbmcgui.ListItem(label=labels["categories"])
     cat_url = build_url({"mode": "categories"})
     xbmcplugin.addDirectoryItem(ADDON_HANDLE, cat_url, cat_item, isFolder=True)
 
-    # 5. Search Folder (String ID 30085: Search)
-    search_item = xbmcgui.ListItem(label=ADDON.getLocalizedString(30085))
+    # If authenticated, show personalized My List and Continue Watching
+    if id_token:
+        # 7. Meine Liste (Page ID: my_list)
+        mylist_item = xbmcgui.ListItem(label=labels["mylist"])
+        mylist_url = build_url({"mode": "page", "id": "my_list", "title": labels["mylist"]})
+        xbmcplugin.addDirectoryItem(ADDON_HANDLE, mylist_url, mylist_item, isFolder=True)
+
+        # 8. Weiterschauen (Page ID: continue_watching)
+        resume_item = xbmcgui.ListItem(label=labels["continue_watching"])
+        resume_url = build_url({"mode": "watchlist", "id": "resume", "title": labels["continue_watching"]})
+        xbmcplugin.addDirectoryItem(ADDON_HANDLE, resume_url, resume_item, isFolder=True)
+
+    # 9. Suche (Search Folder)
+    search_item = xbmcgui.ListItem(label=labels["search"])
     search_url = build_url({"mode": "search_input"})
     xbmcplugin.addDirectoryItem(ADDON_HANDLE, search_url, search_item, isFolder=True)
 
