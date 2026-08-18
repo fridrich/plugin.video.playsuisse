@@ -121,12 +121,17 @@ def list_page(page_id, page_title):
     else:
         # List each module as a subfolder
         for i, mod in enumerate(modules):
-            item = xbmcgui.ListItem(label=mod["title"])
+            title = mod.get("title") or ""
+            # The web's main carousel is internally named "Smart Hero V3" etc.
+            if "smart hero" in title.lower():
+                title = ADDON.getLocalizedString(30050)
+
+            item = xbmcgui.ListItem(label=title)
             url = build_url({
                 "mode": "module",
                 "page_id": page_id,
                 "module_idx": i,
-                "title": mod["title"]
+                "title": title
             })
             xbmcplugin.addDirectoryItem(ADDON_HANDLE, url, item, isFolder=True)
         xbmcplugin.endOfDirectory(ADDON_HANDLE)
