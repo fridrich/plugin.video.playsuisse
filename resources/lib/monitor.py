@@ -258,7 +258,7 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
             return False
 
     def _get_user_info(self):
-        """Loads session.json and extracts sub (account_id) and the real profile_id from the GraphQL API."""
+        """Loads session.json and extracts sub (account_id) and caches the real profile_id from the GraphQL API."""
         user_id = None
         try:
             profile_dir = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
@@ -277,7 +277,15 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                         token_payload = json.loads(decoded)
                         user_id = clean_str(token_payload.get("sub"))
 
-                        # Fetch the actual profileId from the backend using the persisted GraphQL query
+                        # If we already fetched and cached the profile_id in a previous run, use it instantly!
+                        cached_profile_id = session_data.get("profile_id")
+                        if cached_profile_id:
+                            return {
+                                "account_id": user_id,
+                                "profile_id": clean_str(cached_profile_id)
+                            }
+
+                        # Otherwise, fetch the actual profileId from the backend using the persisted GraphQL query
                         url = "https://www.playsuisse.ch/api/graphql"
                         query_payload = [{
                             "operationName": "UserProfileWithPreferencesAndUserInfo",
@@ -305,9 +313,20 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                             res_data = json.loads(response.read().decode("utf-8"))
                             if res_data and isinstance(res_data, list):
                                 profile_data = res_data[0].get("data", {}).get("userProfile", {})
+                                profile_id = clean_str(profile_data.get("profileId"))
+
+                                # Cache the profile_id into session.json so we never have to fetch it again
+                                if profile_id:
+                                    session_data["profile_id"] = profile_id
+                                    try:
+                                        with open(session_file, "w") as f_out:
+                                            json.dump(session_data, f_out)
+                                    except Exception as write_err:
+                                        xbmc.log(f"PlaySuissePlaybackMonitor: Failed to cache profile_id: {write_err}", xbmc.LOGWARNING)
+
                                 return {
                                     "account_id": user_id,
-                                    "profile_id": clean_str(profile_data.get("profileId"))
+                                    "profile_id": profile_id
                                 }
         except Exception as e:
             xbmc.log(f"PlaySuissePlaybackMonitor: Failed to fetch active profile ID: {e}", xbmc.LOGERROR)
