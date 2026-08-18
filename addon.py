@@ -225,8 +225,17 @@ def list_page(page_id, page_title):
         # List each module as a subfolder
         for i, mod in enumerate(modules):
             title = mod.get("title") or ""
+            title_lower = title.lower()
+
+            # Skip 'Continue Watching' and 'My List' modules on the homepage to avoid duplication with root menu shortcuts
+            if page_id == "homepage":
+                if any(term in title_lower for term in ("reprendre", "weiterschauen", "continua", "continue", "cuntinuar")):
+                    continue
+                if any(term in title_lower for term in ("ma liste", "meine liste", "la mia lista", "my list", "glista", "watchlist")):
+                    continue
+
             # The web's main carousel is internally named "Smart Hero V3" etc.
-            if "smart hero" in title.lower():
+            if "smart hero" in title_lower:
                 lang = get_main_menu_language()
                 labels = MAIN_MENU_LANGUAGES.get(lang, MAIN_MENU_LANGUAGES["en"])
                 title = labels["highlights"]
