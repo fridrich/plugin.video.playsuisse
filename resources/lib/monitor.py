@@ -87,6 +87,8 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
         # Ignore short intro/logo clips preceding the main video
         if duration > 0 and duration < 25:
             xbmc.log(f"PlaySuissePlaybackMonitor: Short intro/logo detected ({duration} s), skipping track configuration.", xbmc.LOGINFO)
+            # DO NOT set self.configured = True here.
+            # We want to wait for the actual main video to trigger a second onAVStarted!
             return
 
         xbmc.log("PlaySuissePlaybackMonitor: Playback started, configuring languages.", xbmc.LOGINFO)
@@ -465,9 +467,11 @@ def main():
 
     monitor = PlaySuissePlaybackMonitor(primary_lang, asset_id, title)
 
-    # Keep background script alive until playback starts and we configure languages, or 25s timeout
-    timeout = 50  # 25 seconds
+    # Keep background script alive until playback starts and we configure languages, or 60s timeout (allows for pre-rolls)
+    timeout = 120  # 60 seconds (120 * 500ms)
     while not monitor.configured and timeout > 0:
+        if not monitor.playback_active and timeout < 110: # If playback stopped and we're not just starting
+             break
         xbmc.sleep(500)
         timeout -= 1
 
