@@ -259,6 +259,26 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
         except Exception:
             return False
 
+    def _get_ui_locale(self):
+        """Gets the locale based on the addon setting, falling back to Kodi's language."""
+        try:
+            lang_setting = ADDON.getSetting("language")
+            if lang_setting and lang_setting != "auto":
+                return lang_setting
+
+            kodi_lang = xbmc.getLanguage(xbmc.ISO_639_1, True)
+            if kodi_lang:
+                kodi_lang = kodi_lang.lower()
+                if "de" in kodi_lang:
+                    return "de"
+                if "it" in kodi_lang:
+                    return "it"
+                if "rm" in kodi_lang:
+                    return "rm"
+        except Exception:
+            pass
+        return "fr"
+
     def _get_user_info(self):
         """Loads session.json and extracts sub (account_id) and caches the real profile_id from the GraphQL API."""
         user_id = None
@@ -279,7 +299,6 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                         token_payload = json.loads(decoded)
                         user_id = clean_str(token_payload.get("sub"))
 
-                        # If we already fetched and cached the profile_id in a previous run, use it instantly!
                         cached_profile_id = session_data.get("profile_id")
                         if cached_profile_id:
                             return {
@@ -287,7 +306,6 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                                 "profile_id": clean_str(cached_profile_id)
                             }
 
-                        # Otherwise, fetch the actual profileId from the backend using the persisted GraphQL query
                         url = "https://www.playsuisse.ch/api/graphql?complex_subs=true&stipo_env=production2&discontinuity=true"
                         query_payload = [
                             {
@@ -316,7 +334,7 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                             "Content-Type": "application/json",
                             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                             "x-playsuisse-app": "id=web&version=1.1.27",
-                            "x-playsuisse-locale": "fr"
+                            "x-playsuisse-locale": self._get_ui_locale()
                         }
 
                         req = urllib.request.Request(url, data=json.dumps(query_payload).encode("utf-8"), headers=headers, method="POST")
@@ -330,7 +348,6 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                                 profile_data = res_data[1].get("data", {}).get("userProfile", {})
                                 profile_id = clean_str(profile_data.get("profileId"))
 
-                                # Cache the profile_id into session.json so we never have to fetch it again
                                 if profile_id:
                                     session_data["profile_id"] = profile_id
                                     try:
