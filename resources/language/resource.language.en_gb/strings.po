@@ -95,6 +95,10 @@ msgctxt "#30085"
 msgid "Search"
 msgstr "Search"
 
+msgctxt "#30086"
+msgid "Highlights"
+msgstr "Highlights"
+
 msgctxt "#30020"
 msgid "Language"
 msgstr "Language"

@@ -118,6 +118,10 @@ msgctxt "#30085"
 msgid "Search"
 msgstr "Recherche"
 
+msgctxt "#30086"
+msgid "Highlights"
+msgstr "À la une"
+
 msgctxt "#30100"
 msgid "Failed to log in. Please check credentials in addon settings."
 msgstr "Échec de la connexion. Veuillez vérifier les identifiants dans les paramètres de l'extension."

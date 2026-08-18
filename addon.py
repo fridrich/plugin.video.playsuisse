@@ -124,7 +124,7 @@ def list_page(page_id, page_title):
             title = mod.get("title") or ""
             # The web's main carousel is internally named "Smart Hero V3" etc.
             if "smart hero" in title.lower():
-                title = ADDON.getLocalizedString(30050)
+                title = ADDON.getLocalizedString(30086)
 
             item = xbmcgui.ListItem(label=title)
             url = build_url({

@@ -118,6 +118,10 @@ msgctxt "#30085"
 msgid "Search"
 msgstr "Tschertgar"
 
+msgctxt "#30086"
+msgid "Highlights"
+msgstr "En evidenza"
+
 msgctxt "#30100"
 msgid "Failed to log in. Please check credentials in addon settings."
 msgstr "S'annunziar betg reussì. Controllai las datas d'access en las preferenzas da l'addon."
