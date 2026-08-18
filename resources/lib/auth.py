@@ -191,7 +191,7 @@ class PlaySuisseAuth:
         """Trades a cached refresh token for a fresh id_token."""
         session = requests.Session()
         session.headers.update({
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         })
 
         token_url = f"{self.LOGIN_BASE}/proxy/token"
@@ -237,7 +237,7 @@ class PlaySuisseAuth:
 
         session = requests.Session()
         session.headers.update({
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         })
 
         # Step 1: Initial authz request to register login session

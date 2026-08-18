@@ -111,7 +111,7 @@ Password Input Methods (to prevent shell-escaping issues with special characters
 
     session = requests.Session()
     session.headers.update({
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     })
 
     # Step 1: Initial authz request

@@ -52,10 +52,13 @@ class PlaySuisseAPI:
         headers = {
             "Content-Type": "application/json",
             "locale": locale,
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"
+            "x-playsuisse-locale": locale,
+            "x-playsuisse-app": "id=web&version=1.1.27",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         if token:
             headers["Authorization"] = f"Bearer {token}"
+            headers["x-playsuisse-access-token"] = token
         payload = {
             "query": query,
             "variables": variables or {}
