@@ -258,7 +258,8 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
             return False
 
     def _get_user_info(self):
-        """Loads session.json and extracts sub (profile_id) from the JWT."""
+        """Loads session.json and extracts sub (account_id) and the real profile_id from the GraphQL API."""
+        user_id = None
         try:
             profile_dir = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
             session_file = os.path.join(profile_dir, "session.json")
@@ -267,19 +268,51 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                     session_data = json.load(f)
                 id_token = session_data.get("id_token")
                 if id_token:
-                    id_token = clean_str(id_token)
-                    parts = id_token.split(".")
+                    clean_token = clean_str(id_token)
+                    parts = clean_token.split(".")
                     if len(parts) >= 2:
                         payload = parts[1]
                         payload += "=" * ((4 - len(payload) % 4) % 4)
                         decoded = base64.b64decode(payload).decode('utf-8', errors='ignore')
                         token_payload = json.loads(decoded)
-                        return {
-                            "profile_id": clean_str(token_payload.get("sub"))
+                        user_id = clean_str(token_payload.get("sub"))
+
+                        # Fetch the actual profileId from the backend using the persisted GraphQL query
+                        url = "https://www.playsuisse.ch/api/graphql"
+                        query_payload = [{
+                            "operationName": "UserProfileWithPreferencesAndUserInfo",
+                            "variables": {},
+                            "extensions": {
+                                "persistedQuery": {
+                                    "version": 1,
+                                    "sha256Hash": "93b24b6d887b532304d2fbc6a422b52092d853edf17cf33488ccf0218f8c6e3c"
+                                }
+                            }
+                        }]
+                        headers = {
+                            "Authorization": "Bearer " + clean_token,
+                            "Content-Type": "application/json",
+                            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                            "x-playsuisse-locale": "fr"
                         }
+
+                        req = urllib.request.Request(url, data=json.dumps(query_payload).encode("utf-8"), headers=headers, method="POST")
+                        ctx = ssl.create_default_context()
+                        ctx.check_hostname = False
+                        ctx.verify_mode = ssl.CERT_NONE
+
+                        with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+                            res_data = json.loads(response.read().decode("utf-8"))
+                            if res_data and isinstance(res_data, list):
+                                profile_data = res_data[0].get("data", {}).get("userProfile", {})
+                                return {
+                                    "account_id": user_id,
+                                    "profile_id": clean_str(profile_data.get("profileId"))
+                                }
         except Exception as e:
-            xbmc.log(f"PlaySuissePlaybackMonitor: Failed to extract user info from token: {e}", xbmc.LOGERROR)
-        return {"profile_id": None}
+            xbmc.log(f"PlaySuissePlaybackMonitor: Failed to fetch active profile ID: {e}", xbmc.LOGERROR)
+
+        return {"account_id": user_id, "profile_id": user_id}
 
     def send_event(self, event_name):
         """Sends progress telemetry directly to the Play Suisse DataLab Event Gateway."""
@@ -303,10 +336,11 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                 position = 0
 
             user_info = self._get_user_info()
+            user_id = user_info.get("account_id")
             profile_id = user_info.get("profile_id")
 
             if not profile_id:
-                xbmc.log("PlaySuissePlaybackMonitor: Skip sending event, no user profile_id found in token", xbmc.LOGWARNING)
+                xbmc.log("PlaySuissePlaybackMonitor: Skip sending event, no user profile_id found", xbmc.LOGWARNING)
                 return
 
             # Derive a stable 10-digit guest_id by hashing the profile ID
@@ -350,7 +384,7 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                         "platform": "web"
                     },
                     "user": {
-                        "user_id": profile_id,
+                        "user_id": user_id,
                         "profile_id": profile_id,
                         "guest_id": guest_id,
                         "language": user_lang
