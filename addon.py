@@ -43,7 +43,8 @@ MAIN_MENU_LANGUAGES = {
         "categories": "Themen",
         "mylist": "Meine Liste",
         "continue_watching": "Weiterschauen",
-        "search": "Suche"
+        "search": "Suche",
+        "highlights": "Highlights"
     },
     "fr": {
         "home": "Accueil",
@@ -54,7 +55,8 @@ MAIN_MENU_LANGUAGES = {
         "categories": "Catégories",
         "mylist": "Ma liste",
         "continue_watching": "Reprendre la lecture",
-        "search": "Recherche"
+        "search": "Recherche",
+        "highlights": "À la une"
     },
     "it": {
         "home": "Home",
@@ -65,7 +67,8 @@ MAIN_MENU_LANGUAGES = {
         "categories": "Categorie",
         "mylist": "La mia lista",
         "continue_watching": "Continua a guardare",
-        "search": "Cerca"
+        "search": "Cerca",
+        "highlights": "In primo piano"
     },
     "rm": {
         "home": "Home",
@@ -76,7 +79,8 @@ MAIN_MENU_LANGUAGES = {
         "categories": "Temas",
         "mylist": "Mia glista",
         "continue_watching": "Continuar la lectura",
-        "search": "Tschertgar"
+        "search": "Tschertgar",
+        "highlights": "En evidenza"
     },
     "en": {
         "home": "Home",
@@ -87,7 +91,8 @@ MAIN_MENU_LANGUAGES = {
         "categories": "Categories",
         "mylist": "My List",
         "continue_watching": "Continue Watching",
-        "search": "Search"
+        "search": "Search",
+        "highlights": "Highlights"
     }
 }
 
@@ -222,7 +227,9 @@ def list_page(page_id, page_title):
             title = mod.get("title") or ""
             # The web's main carousel is internally named "Smart Hero V3" etc.
             if "smart hero" in title.lower():
-                title = ADDON.getLocalizedString(30086)
+                lang = get_main_menu_language()
+                labels = MAIN_MENU_LANGUAGES.get(lang, MAIN_MENU_LANGUAGES["en"])
+                title = labels["highlights"]
 
             item = xbmcgui.ListItem(label=title)
             url = build_url({
