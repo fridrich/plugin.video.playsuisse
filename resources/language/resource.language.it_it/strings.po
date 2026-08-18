@@ -142,3 +142,39 @@ msgctxt "#30105"
 msgid "Login failed on this device (possibly blocked by Cloudflare). To bypass this block, you can generate a session on your PC using the included tool 'gen_session.py' and copy 'session.json' to this device's profile directory. See README.md (Method C) for details."
 msgstr "Accesso fallito su questo dispositivo (probabilmente bloccato da Cloudflare). Per aggirare questo blocco, puoi generare una sessione sul tuo PC utilizzando lo strumento incluso 'gen_session.py' e copiare 'session.json' nella cartella del profilo di questo dispositivo. Vedi README.md (Metodo C) per i dettagli."
 
+
+msgctxt "#30110"
+msgid "Add to My List"
+msgstr "Aggiungi alla mia lista"
+
+msgctxt "#30111"
+msgid "Remove from My List"
+msgstr "Rimuovi dalla mia lista"
+
+msgctxt "#30112"
+msgid "Hide from Continue Watching"
+msgstr "Nascondi da Continua a guardare"
+
+msgctxt "#30113"
+msgid "Added '{title}' to My List"
+msgstr "'{title}' aggiunto alla mia lista"
+
+msgctxt "#30114"
+msgid "Failed to add to My List"
+msgstr "Impossibile aggiungere alla mia lista"
+
+msgctxt "#30115"
+msgid "Removed '{title}' from My List"
+msgstr "'{title}' rimosso dalla mia lista"
+
+msgctxt "#30116"
+msgid "Failed to remove from My List"
+msgstr "Impossibile rimuovere dalla mia lista"
+
+msgctxt "#30117"
+msgid "Removed '{title}' from Continue Watching"
+msgstr "'{title}' rimosso da Continua a guardare"
+
+msgctxt "#30118"
+msgid "Failed to remove from Continue Watching"
+msgstr "Impossibile rimuovere da Continua a guardare"

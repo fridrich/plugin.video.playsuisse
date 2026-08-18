@@ -142,3 +142,39 @@ msgctxt "#30105"
 msgid "Login failed on this device (possibly blocked by Cloudflare). To bypass this block, you can generate a session on your PC using the included tool 'gen_session.py' and copy 'session.json' to this device's profile directory. See README.md (Method C) for details."
 msgstr "Échec de la connexion sur cet appareil (possiblement bloqué par Cloudflare). Pour contourner ce blocage, vous pouvez générer une session sur votre PC à l'aide de l'outil inclus 'gen_session.py' et copier 'session.json' dans le répertoire de profil de cet appareil. Voir README.md (Méthode C) pour plus de détails."
 
+
+msgctxt "#30110"
+msgid "Add to My List"
+msgstr "Ajouter à ma liste"
+
+msgctxt "#30111"
+msgid "Remove from My List"
+msgstr "Retirer de ma liste"
+
+msgctxt "#30112"
+msgid "Hide from Continue Watching"
+msgstr "Retirer de Reprendre la lecture"
+
+msgctxt "#30113"
+msgid "Added '{title}' to My List"
+msgstr "'{title}' ajouté à ma liste"
+
+msgctxt "#30114"
+msgid "Failed to add to My List"
+msgstr "Échec de l'ajout à ma liste"
+
+msgctxt "#30115"
+msgid "Removed '{title}' from My List"
+msgstr "'{title}' retiré de ma liste"
+
+msgctxt "#30116"
+msgid "Failed to remove from My List"
+msgstr "Échec du retrait de ma liste"
+
+msgctxt "#30117"
+msgid "Removed '{title}' from Continue Watching"
+msgstr "'{title}' retiré de Reprendre la lecture"
+
+msgctxt "#30118"
+msgid "Failed to remove from Continue Watching"
+msgstr "Échec du retrait de Reprendre la lecture"
