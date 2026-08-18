@@ -230,13 +230,13 @@ def get_asset_context_menu(asset_id, name, is_in_mylist=False, is_resume_list=Fa
 
     # 1. My List context action (Add vs Remove)
     if is_in_mylist:
-        menu_items.append(("Remove from My List", f"RunPlugin({build_url({'mode': 'remove_mylist', 'id': asset_id, 'title': name})})"))
+        menu_items.append((ADDON.getLocalizedString(30111), f"RunPlugin({build_url({'mode': 'remove_mylist', 'id': asset_id, 'title': name})})"))
     else:
-        menu_items.append(("Add to My List", f"RunPlugin({build_url({'mode': 'add_mylist', 'id': asset_id, 'title': name})})"))
+        menu_items.append((ADDON.getLocalizedString(30110), f"RunPlugin({build_url({'mode': 'add_mylist', 'id': asset_id, 'title': name})})"))
 
     # 2. Continue Watching context action (only if it has progress or we are in the resume list)
     if is_resume_list or resume_seconds > 0:
-        menu_items.append(("Hide from Continue Watching", f"RunPlugin({build_url({'mode': 'hide_resume', 'id': asset_id, 'title': name})})"))
+        menu_items.append((ADDON.getLocalizedString(30112), f"RunPlugin({build_url({'mode': 'hide_resume', 'id': asset_id, 'title': name})})"))
 
     return menu_items
 
@@ -258,7 +258,7 @@ def get_episode_context_menu(ep_id, name, resume_seconds=0):
     menu_items = []
     # Episodes cannot be added to My List individually (only Series can), but can be hidden from Continue Watching
     if resume_seconds > 0:
-        menu_items.append(("Hide from Continue Watching", f"RunPlugin({build_url({'mode': 'hide_resume', 'id': ep_id, 'title': name})})"))
+        menu_items.append((ADDON.getLocalizedString(30112), f"RunPlugin({build_url({'mode': 'hide_resume', 'id': ep_id, 'title': name})})"))
     return menu_items
 
 
@@ -567,11 +567,11 @@ def run():
             id_token = auth_mgr.get_token()
             if id_token:
                 api.add_to_my_list(item_id, token=id_token)
-                xbmcgui.Dialog().notification("Play Suisse", f"Added '{title}' to My List")
+                xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30113).format(title=title))
                 xbmc.executebuiltin("Container.Refresh")
         except Exception as e:
             xbmc.log(f"PlaySuisse: Add to My List failed: {e}", xbmc.LOGERROR)
-            xbmcgui.Dialog().notification("Play Suisse", "Failed to add to My List")
+            xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30114))
     elif mode == "remove_mylist":
         try:
             from resources.lib.auth import PlaySuisseAuth
@@ -579,11 +579,11 @@ def run():
             id_token = auth_mgr.get_token()
             if id_token:
                 api.remove_from_my_list(item_id, token=id_token)
-                xbmcgui.Dialog().notification("Play Suisse", f"Removed '{title}' from My List")
+                xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30115).format(title=title))
                 xbmc.executebuiltin("Container.Refresh")
         except Exception as e:
             xbmc.log(f"PlaySuisse: Remove from My List failed: {e}", xbmc.LOGERROR)
-            xbmcgui.Dialog().notification("Play Suisse", "Failed to remove from My List")
+            xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30116))
     elif mode == "hide_resume":
         try:
             from resources.lib.auth import PlaySuisseAuth
@@ -591,11 +591,11 @@ def run():
             id_token = auth_mgr.get_token()
             if id_token:
                 api.hide_from_continue_watching(item_id, token=id_token)
-                xbmcgui.Dialog().notification("Play Suisse", f"Removed '{title}' from Continue Watching")
+                xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30117).format(title=title))
                 xbmc.executebuiltin("Container.Refresh")
         except Exception as e:
             xbmc.log(f"PlaySuisse: Hide from Continue Watching failed: {e}", xbmc.LOGERROR)
-            xbmcgui.Dialog().notification("Play Suisse", "Failed to remove from Continue Watching")
+            xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30118))
 
 
 if __name__ == "__main__":
