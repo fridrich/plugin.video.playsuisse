@@ -7,6 +7,7 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 
+import os
 import sys
 from urllib.parse import parse_qsl, urlencode
 
@@ -14,6 +15,7 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
+import xbmcvfs
 
 from resources.lib.api import PlaySuisseAPI
 from resources.lib.player import PlaySuissePlayer
@@ -25,9 +27,11 @@ BASE_URL = sys.argv[0]
 api = PlaySuisseAPI()
 player = PlaySuissePlayer(ADDON)
 
+
 def build_url(query):
     """Utility to build callback URLs for Kodi plugin routing."""
     return f"{BASE_URL}?{urlencode(query)}"
+
 
 def main_menu():
     """Renders the main menu of the addon mimicking the official web portal."""
@@ -36,7 +40,6 @@ def main_menu():
     try:
         from resources.lib.auth import PlaySuisseAuth
         auth_mgr = PlaySuisseAuth(ADDON)
-        import os
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
     except Exception as e:
@@ -99,7 +102,6 @@ def list_page(page_id, page_title):
     try:
         from resources.lib.auth import PlaySuisseAuth
         auth_mgr = PlaySuisseAuth(ADDON)
-        import os
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
     except Exception:
@@ -114,6 +116,7 @@ def list_page(page_id, page_title):
 
     # If there is only one module, flatten it and list its assets directly
     if len(modules) == 1:
+        # If this is the 'my_list' page, we can pass is_resume_list=False
         list_assets(modules[0]["assets"])
     else:
         # List each module as a subfolder
@@ -128,6 +131,7 @@ def list_page(page_id, page_title):
             xbmcplugin.addDirectoryItem(ADDON_HANDLE, url, item, isFolder=True)
         xbmcplugin.endOfDirectory(ADDON_HANDLE)
 
+
 def list_module(page_id, module_idx):
     """Lists assets inside a specific module of a page."""
     # Check if we have an authenticated session silently
@@ -135,7 +139,6 @@ def list_module(page_id, module_idx):
     try:
         from resources.lib.auth import PlaySuisseAuth
         auth_mgr = PlaySuisseAuth(ADDON)
-        import os
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
     except Exception:
@@ -148,6 +151,7 @@ def list_module(page_id, module_idx):
         list_assets(module["assets"])
     except (IndexError, ValueError):
         xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
+
 
 def get_resume_position(asset):
     """Safely parses the resume position in seconds from the GraphQL 'watch' structure."""
@@ -176,13 +180,39 @@ def get_resume_position(asset):
     return 0
 
 
-def get_asset_context_menu(asset_id, name):
-    """Builds custom context menu actions to add/remove My List and hide from Continue Watching."""
+def get_my_list_ids():
+    """Fetches the user's My List page and returns a set of asset IDs."""
     id_token = None
     try:
         from resources.lib.auth import PlaySuisseAuth
         auth_mgr = PlaySuisseAuth(ADDON)
-        import os
+        if os.path.exists(auth_mgr.session_file):
+            id_token = auth_mgr.get_token()
+    except Exception:
+        pass
+
+    if not id_token:
+        return set()
+
+    try:
+        page_data = api.get_page("my_list", token=id_token)
+        modules = page_data.get("modules") or []
+        for mod in modules:
+            title_lower = (mod.get("title") or "").lower()
+            if any(term in title_lower for term in ("ma liste", "meine liste", "la mia lista", "my list", "glista", "watchlist")):
+                assets = mod.get("assets") or []
+                return {str(a.get("id")) for a in assets if a.get("id")}
+    except Exception as e:
+        xbmc.log(f"PlaySuisse: Failed to fetch My List IDs: {e}", xbmc.LOGERROR)
+    return set()
+
+
+def get_asset_context_menu(asset_id, name, is_in_mylist=False, is_resume_list=False, resume_seconds=0):
+    """Builds custom context menu actions dynamically based on state."""
+    id_token = None
+    try:
+        from resources.lib.auth import PlaySuisseAuth
+        auth_mgr = PlaySuisseAuth(ADDON)
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
     except Exception:
@@ -191,16 +221,46 @@ def get_asset_context_menu(asset_id, name):
     if not id_token:
         return []
 
-    menu_items = [
-        ("Add to My List", f"RunPlugin({build_url({'mode': 'add_mylist', 'id': asset_id, 'title': name})})"),
-        ("Remove from My List", f"RunPlugin({build_url({'mode': 'remove_mylist', 'id': asset_id, 'title': name})})"),
-        ("Hide from Continue Watching", f"RunPlugin({build_url({'mode': 'hide_resume', 'id': asset_id, 'title': name})})")
-    ]
+    menu_items = []
+
+    # 1. My List context action (Add vs Remove)
+    if is_in_mylist:
+        menu_items.append(("Remove from My List", f"RunPlugin({build_url({'mode': 'remove_mylist', 'id': asset_id, 'title': name})})"))
+    else:
+        menu_items.append(("Add to My List", f"RunPlugin({build_url({'mode': 'add_mylist', 'id': asset_id, 'title': name})})"))
+
+    # 2. Continue Watching context action (only if it has progress or we are in the resume list)
+    if is_resume_list or resume_seconds > 0:
+        menu_items.append(("Hide from Continue Watching", f"RunPlugin({build_url({'mode': 'hide_resume', 'id': asset_id, 'title': name})})"))
+
     return menu_items
 
 
-def list_assets(assets):
+def get_episode_context_menu(ep_id, name, resume_seconds=0):
+    """Builds custom context menu actions for episodes."""
+    id_token = None
+    try:
+        from resources.lib.auth import PlaySuisseAuth
+        auth_mgr = PlaySuisseAuth(ADDON)
+        if os.path.exists(auth_mgr.session_file):
+            id_token = auth_mgr.get_token()
+    except Exception:
+        pass
+
+    if not id_token:
+        return []
+
+    menu_items = []
+    # Episodes cannot be added to My List individually (only Series can), but can be hidden from Continue Watching
+    if resume_seconds > 0:
+        menu_items.append(("Hide from Continue Watching", f"RunPlugin({build_url({'mode': 'hide_resume', 'id': ep_id, 'title': name})})"))
+    return menu_items
+
+
+def list_assets(assets, is_resume_list=False):
     """Helper to convert GraphQL asset structures to Kodi ListItems."""
+    my_list_ids = get_my_list_ids()
+
     for asset in assets:
         asset_id = asset.get("id")
         name = asset.get("name") or "Video"
@@ -208,9 +268,6 @@ def list_assets(assets):
         year = asset.get("year")
         duration = asset.get("duration")
 
-        # Determine if it's a series (series are folders, movies are playable files)
-        # Note: if it has duration/year but we are unsure, we can check via asset details.
-        # But normally Series have years represented as ranges (e.g. '2017-2022') or duration is null.
         is_series = duration is None or duration == 0
 
         item = xbmcgui.ListItem(label=name)
@@ -228,8 +285,11 @@ def list_assets(assets):
 
         item.setInfo("video", info)
 
+        resume_seconds = get_resume_position(asset)
+
         # Context menu actions (My List & Continue Watching)
-        item.addContextMenuItems(get_asset_context_menu(asset_id, name))
+        is_in_mylist = str(asset_id) in my_list_ids
+        item.addContextMenuItems(get_asset_context_menu(asset_id, name, is_in_mylist, is_resume_list, resume_seconds))
 
         # Thumbnail
         thumb = asset.get("thumbnail16x9") or {}
@@ -238,7 +298,6 @@ def list_assets(assets):
             item.setArt({"thumb": thumb_url, "poster": thumb_url, "fanart": thumb_url})
 
         # Set play progress / resume position for Kodi to display progress and prompt for resume
-        resume_seconds = get_resume_position(asset)
         if resume_seconds > 0:
             item.setProperty("ResumeTime", str(resume_seconds))
             if duration:
@@ -264,7 +323,6 @@ def list_series_episodes(series_id, series_title):
     try:
         from resources.lib.auth import PlaySuisseAuth
         auth_mgr = PlaySuisseAuth(ADDON)
-        import os
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
     except Exception:
@@ -308,8 +366,10 @@ def list_series_episodes(series_id, series_title):
 
         item.setInfo("video", info)
 
-        # Context menu actions (My List & Continue Watching)
-        item.addContextMenuItems(get_asset_context_menu(ep_id, name))
+        resume_seconds = get_resume_position(ep)
+
+        # Context menu actions for episodes
+        item.addContextMenuItems(get_episode_context_menu(ep_id, name, resume_seconds))
 
         # Thumbnail
         thumb = ep.get("thumbnail16x9") or {}
@@ -318,7 +378,6 @@ def list_series_episodes(series_id, series_title):
             item.setArt({"thumb": thumb_url, "poster": thumb_url, "fanart": thumb_url})
 
         # Set play progress / resume position for Kodi to display progress and prompt for resume
-        resume_seconds = get_resume_position(ep)
         if resume_seconds > 0:
             item.setProperty("ResumeTime", str(resume_seconds))
             if duration:
@@ -364,7 +423,8 @@ def handle_watchlist(list_type):
                 break
 
     if target_module and target_module.get("assets"):
-        list_assets(target_module["assets"])
+        # If this is the 'Continue Watching' watchlist, tell list_assets to enable hide context action on all items
+        list_assets(target_module["assets"], is_resume_list=(list_type == "resume"))
     else:
         xbmcplugin.endOfDirectory(ADDON_HANDLE, True)
 
@@ -390,7 +450,6 @@ def handle_login():
     auth = PlaySuisseAuth(ADDON)
 
     # Clear existing session cache to force fresh handshake
-    import os
     if os.path.exists(auth.session_file):
         try:
             os.remove(auth.session_file)
@@ -427,8 +486,6 @@ def handle_login():
 
 def handle_keymap_sync():
     """Manages creation or removal of the custom Home-to-Fullscreen keymap."""
-    import os
-    import xbmcvfs
     keymaps_dir = xbmcvfs.translatePath("special://profile/keymaps/")
     keymap_file = os.path.join(keymaps_dir, "playsuisse_keymap.xml")
 
