@@ -20,7 +20,6 @@ import hashlib
 import json
 import time
 import uuid
-import getpass
 from urllib.parse import parse_qs, urlparse
 import requests
 
@@ -37,6 +36,65 @@ def error(msg):
     sys.stderr.write(f"[ERROR] {msg}\n")
     sys.stderr.flush()
     sys.exit(1)
+
+
+def getpass_masked(prompt="[*] Enter Play Suisse Password: ", mask="*"):
+    sys.stderr.write(prompt)
+    sys.stderr.flush()
+    password = []
+
+    try:
+        import msvcrt
+        while True:
+            ch = msvcrt.getch()
+            if ch in (b'\r', b'\n'):
+                sys.stderr.write('\n')
+                sys.stderr.flush()
+                break
+            elif ch in (b'\x7f', b'\x08'):
+                if password:
+                    password.pop()
+                    sys.stderr.write('\b \b')
+                    sys.stderr.flush()
+            elif ch == b'\x03':
+                raise KeyboardInterrupt
+            else:
+                password.append(ch.decode('utf-8', errors='ignore'))
+                sys.stderr.write(mask)
+                sys.stderr.flush()
+        return "".join(password)
+    except ImportError:
+        import termios
+        import tty
+
+        fd = sys.stdin.fileno()
+        if not os.isatty(fd):
+            import getpass
+            return getpass.getpass(prompt="", stream=sys.stderr)
+
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            while True:
+                ch = sys.stdin.read(1)
+                if ch in ('\r', '\n'):
+                    sys.stderr.write('\r\n')
+                    sys.stderr.flush()
+                    break
+                elif ch in ('\x7f', '\x08'):
+                    if password:
+                        password.pop()
+                        sys.stderr.write('\b \b')
+                        sys.stderr.flush()
+                elif ch == '\x03':
+                    raise KeyboardInterrupt
+                else:
+                    password.append(ch)
+                    sys.stderr.write(mask)
+                    sys.stderr.flush()
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return "".join(password)
 
 
 def main():
@@ -96,7 +154,7 @@ Password Input Methods (to prevent shell-escaping issues with special characters
             # Secure interactive prompt fallback (completely immune to shell escaping!)
             # sys.stderr is used for the prompt so that your redirected stdout (> session.json) remains pristine!
             try:
-                password = getpass.getpass(prompt="[*] Enter Play Suisse Password (not echoed): ", stream=sys.stderr)
+                password = getpass_masked(prompt="[*] Enter Play Suisse Password (masked): ")
             except Exception as e:
                 error(f"Failed to read password from secure prompt: {e}")
 
