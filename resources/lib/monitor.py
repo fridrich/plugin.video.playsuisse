@@ -8,6 +8,7 @@
 # (at your option) any later version.
 
 import base64
+import hashlib
 import json
 import os
 import ssl
@@ -351,8 +352,11 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                                 if profile_id:
                                     session_data["profile_id"] = profile_id
                                     try:
-                                        with open(session_file, "w") as f_out:
+                                        # Atomic write: avoids a truncated session.json on a crash/power loss.
+                                        tmp_path = f"{session_file}.tmp"
+                                        with open(tmp_path, "w") as f_out:
                                             json.dump(session_data, f_out)
+                                        os.replace(tmp_path, session_file)
                                     except Exception as write_err:
                                         xbmc.log(f"PlaySuissePlaybackMonitor: Failed to cache profile_id: {write_err}", xbmc.LOGWARNING)
 
@@ -394,8 +398,8 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                 xbmc.log("PlaySuissePlaybackMonitor: Skip sending event, no user profile_id found", xbmc.LOGWARNING)
                 return
 
-            # Derive a stable 10-digit guest_id by hashing the profile ID
-            guest_id = str(abs(hash(profile_id)))[:10]
+            # Stable 10-digit guest_id (sha256, not hash() - the latter is randomized per-process)
+            guest_id = str(int(hashlib.sha256(profile_id.encode("utf-8")).hexdigest(), 16) % 10**10).zfill(10)
             user_lang = self.primary_lang if self.primary_lang else "fr"
 
             date_time_iso = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())

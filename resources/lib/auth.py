@@ -118,6 +118,19 @@ class PlaySuisseAuth:
 
         raise Exception("LOGIN_FAILED")
 
+    def _write_session_cache(self, data):
+        """Atomically writes the session cache to avoid a truncated file on a crash or power loss."""
+        profile_dir = os.path.dirname(self.session_file)
+        if not os.path.exists(profile_dir):
+            os.makedirs(profile_dir)
+        tmp_path = f"{self.session_file}.tmp"
+        try:
+            with open(tmp_path, "w") as f:
+                json.dump(data, f)
+            os.replace(tmp_path, self.session_file)
+        except Exception as e:
+            xbmc.log(f"PlaySuisseAuth: Failed to write session cache: {e}", xbmc.LOGERROR)
+
     def _refresh_token(self, refresh_token):
         """Trades a cached refresh token for a fresh id_token."""
         session = requests.Session()
@@ -144,18 +157,11 @@ class PlaySuisseAuth:
             raise Exception("REFRESH_FAILED")
 
         # Cache the new session tokens
-        profile_dir = os.path.dirname(self.session_file)
-        if not os.path.exists(profile_dir):
-            os.makedirs(profile_dir)
-        try:
-            with open(self.session_file, "w") as f:
-                json.dump({
-                    "id_token": id_token,
-                    "refresh_token": new_refresh_token,
-                    "timestamp": time.time()
-                }, f)
-        except Exception as e:
-            xbmc.log(f"PlaySuisseAuth: Failed to write session cache: {e}", xbmc.LOGERROR)
+        self._write_session_cache({
+            "id_token": id_token,
+            "refresh_token": new_refresh_token,
+            "timestamp": time.time()
+        })
 
         return id_token
 
@@ -254,17 +260,10 @@ class PlaySuisseAuth:
             raise Exception("TOKEN_TRADE_FAILED")
 
         # Cache the session to disk
-        profile_dir = os.path.dirname(self.session_file)
-        if not os.path.exists(profile_dir):
-            os.makedirs(profile_dir)
-        try:
-            with open(self.session_file, "w") as f:
-                json.dump({
-                    "id_token": id_token,
-                    "refresh_token": refresh_token,
-                    "timestamp": time.time()
-                }, f)
-        except Exception as e:
-            xbmc.log(f"PlaySuisseAuth: Failed to write session cache: {e}", xbmc.LOGERROR)
+        self._write_session_cache({
+            "id_token": id_token,
+            "refresh_token": refresh_token,
+            "timestamp": time.time()
+        })
 
         return id_token, refresh_token
