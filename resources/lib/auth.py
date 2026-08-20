@@ -19,12 +19,46 @@ import requests
 import xbmc
 import xbmcvfs
 
+try:
+    from curl_cffi import requests as curl_requests
+except ImportError:
+    curl_requests = None
 
 class PlaySuisseAuth:
     """Manages the PKCE OAuth2 session login, token caching, and token refresh flows."""
 
     CLIENT_ID = "1e33f1bf-8bf3-45e4-bbd9-c9ad934b5fca"
     LOGIN_BASE = "https://account.srgssr.ch"
+
+    USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    SEC_CH_UA = '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"'
+
+    @classmethod
+    def _browser_headers(cls, accept, referer, dest, mode, site, origin=None, content_type=None, navigation=False):
+        """Builds a Chrome 120-like header set for one PKCE flow step (to match the TLS impersonation)."""
+        headers = {
+            "User-Agent": cls.USER_AGENT,
+            "Accept": accept,
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+        }
+        if content_type:
+            headers["Content-Type"] = content_type
+        if origin:
+            headers["Origin"] = origin
+        headers["Referer"] = referer
+        headers.update({
+            "Sec-Ch-Ua": cls.SEC_CH_UA,
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Linux"',
+            "Sec-Fetch-Dest": dest,
+            "Sec-Fetch-Mode": mode,
+            "Sec-Fetch-Site": site,
+        })
+        if navigation:
+            headers["Sec-Fetch-User"] = "?1"
+            headers["Upgrade-Insecure-Requests"] = "1"
+        return headers
 
     def __init__(self, addon):
         self.addon = addon
@@ -133,10 +167,18 @@ class PlaySuisseAuth:
 
     def _refresh_token(self, refresh_token):
         """Trades a cached refresh token for a fresh id_token."""
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        })
+        if curl_requests:
+            session = curl_requests.Session(impersonate="chrome120")
+        else:
+            session = requests.Session()
+
+        session.headers.clear()
+        session.headers.update(self._browser_headers(
+            accept="application/json, text/plain, */*",
+            referer="https://www.playsuisse.ch/",
+            origin="https://www.playsuisse.ch",
+            dest="empty", mode="cors", site="cross-site",
+        ))
 
         token_url = f"{self.LOGIN_BASE}/proxy/token"
         params = {
@@ -172,10 +214,10 @@ class PlaySuisseAuth:
         code_challenge = base64.urlsafe_b64encode(
             hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
 
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        })
+        if curl_requests:
+            session = curl_requests.Session(impersonate="chrome120")
+        else:
+            session = requests.Session()
 
         # Step 1: Initial authz request to register login session
         authz_url = f"{self.LOGIN_BASE}/authz-srv/authz"
@@ -188,6 +230,12 @@ class PlaySuisseAuth:
             'code_challenge_method': 'S256',
             'view_type': 'login',
         }
+        session.headers.clear()
+        session.headers.update(self._browser_headers(
+            accept="text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            referer="https://www.playsuisse.ch/",
+            dest="document", mode="navigate", site="cross-site", navigation=True,
+        ))
         res = session.get(authz_url, params=params, timeout=15)
         parsed_query = parse_qs(urlparse(res.url).query)
         request_id = parsed_query.get('requestId', [None])[0]
@@ -205,6 +253,14 @@ class PlaySuisseAuth:
             'type': 'password',
             'identifier': email,
         }
+        session.headers.clear()
+        session.headers.update(self._browser_headers(
+            accept="application/json, text/plain, */*",
+            referer=res.url,
+            origin="https://account.srgssr.ch",
+            content_type="application/json",
+            dest="empty", mode="cors", site="same-origin",
+        ))
         res = session.post(init_url, json=payload, timeout=15)
         res_json = res.json()
         exchange_id = res_json.get('data', {}).get('exchange_id', {}).get('exchange_id')
@@ -219,6 +275,14 @@ class PlaySuisseAuth:
             'type': 'password',
             'password': password,
         }
+        session.headers.clear()
+        session.headers.update(self._browser_headers(
+            accept="application/json, text/plain, */*",
+            referer=res.url,
+            origin="https://account.srgssr.ch",
+            content_type="application/json",
+            dest="empty", mode="cors", site="same-origin",
+        ))
         res = session.post(auth_url, json=payload, timeout=15)
         res_json = res.json()
         login_data = res_json.get('data')
@@ -237,6 +301,14 @@ class PlaySuisseAuth:
             'lat': '',
             'lon': '',
         }
+        session.headers.clear()
+        session.headers.update(self._browser_headers(
+            accept="text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            referer=res.url,
+            origin="https://account.srgssr.ch",
+            content_type="application/x-www-form-urlencoded",
+            dest="document", mode="navigate", site="same-origin", navigation=True,
+        ))
         res = session.post(verify_url, data=payload, timeout=15)
         parsed_query = parse_qs(urlparse(res.url).query)
         authorization_code = parsed_query.get('code', [None])[0]
@@ -252,6 +324,13 @@ class PlaySuisseAuth:
             'code_verifier': code_verifier,
             'grant_type': 'authorization_code',
         }
+        session.headers.clear()
+        session.headers.update(self._browser_headers(
+            accept="application/json, text/plain, */*",
+            referer="https://www.playsuisse.ch/",
+            origin="https://www.playsuisse.ch",
+            dest="empty", mode="cors", site="cross-site",
+        ))
         res = session.post(token_url, params=params, timeout=15)
         res_json = res.json()
         id_token = res_json.get('id_token')

@@ -40,8 +40,8 @@ An unofficial third-party Kodi add-on for browsing and streaming content from **
 4. Enter your Play Suisse **Email** and **Password** in the on-screen keyboards.
 5. The add-on completes the PKCE handshake, creates your secure tokens, and immediately clears your password from the screen and settings.
 
-### Method B: Session Transfer (Non-Interactive Setup / Workaround for Cloudflare Blocks on Raspberry Pi / OSMC)
-If typing a complex password using a standard television remote control is too cumbersome, or if you are running Kodi on a device with an older Python/OpenSSL stack (such as **OSMC on a Raspberry Pi**) where Cloudflare protects the login portal with a `"Just a moment..."` browser challenge and blocks direct connection handshakes with a **403 Forbidden** error, you can generate your session on a regular computer instead and copy it over. This never writes your plaintext password to the Kodi device at all.
+### Method B: Session Transfer (Non-Interactive Setup / PC Generation)
+If typing a complex password using a standard television remote control is too cumbersome, or if you do not want to install any packages on your Kodi device, you can generate your session on a regular computer instead and copy it over. This never writes your plaintext password to the Kodi device at all.
 
 1. On any PC with **Python 3** and the `requests` library installed (`pip install requests`), run the included `gen_session.py` script from this repository:
    ```
@@ -53,6 +53,19 @@ If typing a complex password using a standard television remote control is too c
    * **CoreELEC / LibreELEC:** `/storage/.kodi/userdata/addon_data/plugin.video.playsuisse/session.json`
    * **Android:** `/sdcard/Android/data/org.xbmc.kodi/files/.kodi/userdata/addon_data/plugin.video.playsuisse/session.json`
 3. **Result:** The add-on will immediately load and validate the session tokens, allowing you to stream seamlessly without ever needing to type your password on the device or perform the login handshake there.
+
+### ⚡ Bypassing Cloudflare Blocks on OSMC / Raspberry Pi (Direct Kodi Login!)
+If you are running Kodi on a device with an older Python/OpenSSL stack (such as **OSMC on a Raspberry Pi**) where Cloudflare protects the login portal with a `"Just a moment..."` browser challenge and blocks standard connection handshakes with a **403 Forbidden** error, you can enable direct graphical login (Method A) and direct CLI execution right on the device by installing **`curl_cffi`**.
+
+`curl_cffi` mimics modern browser TLS/JA3 handshakes perfectly, which allows both the graphical Kodi addon login and the local `gen_session.py` script to bypass Cloudflare.
+
+To install `curl_cffi` on OSMC (ARMv7l) running Python 3.9:
+
+```bash
+pip3 install "curl_cffi<=0.13.0" --extra-index-url https://bjia56.github.io/armv7l-wheels/
+```
+
+Once `curl_cffi` is installed, direct login in Kodi (Method A) and executing `./gen_session.py` directly on the Raspberry Pi will work seamlessly.
 
 ---
 
