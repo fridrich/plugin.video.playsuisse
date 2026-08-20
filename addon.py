@@ -7,8 +7,10 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 
+import json
 import os
 import sys
+import time
 from urllib.parse import parse_qsl, urlencode
 
 import xbmc
@@ -219,8 +221,12 @@ def list_page(page_id, page_title):
 
     # If there is only one module, flatten it and list its assets directly
     if len(modules) == 1:
-        # If this is the 'my_list' page, we can pass is_resume_list=False
-        list_assets(modules[0]["assets"])
+        assets = modules[0]["assets"]
+        if page_id == "my_list":
+            # Every asset here is by definition in My List - no need to look it up.
+            list_assets(assets, known_mylist_ids={str(a.get("id")) for a in assets if a.get("id")})
+        else:
+            list_assets(assets)
     else:
         # List each module as a subfolder
         for i, mod in enumerate(modules):
@@ -299,8 +305,41 @@ def get_resume_position(asset):
     return 0
 
 
+MYLIST_CACHE_TTL = 60  # seconds
+
+
+def _mylist_cache_path():
+    """Resolves the path to the local My List id cache file, creating the profile dir if needed."""
+    profile_dir = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
+    if not os.path.exists(profile_dir):
+        try:
+            os.makedirs(profile_dir)
+        except Exception:
+            pass
+    return os.path.join(profile_dir, "mylist_cache.json")
+
+
+def _invalidate_my_list_cache():
+    """Drops the cached My List ids so the next listing re-fetches the authoritative set."""
+    try:
+        os.remove(_mylist_cache_path())
+    except Exception:
+        pass
+
+
 def get_my_list_ids():
-    """Fetches the user's My List page and returns a set of asset IDs."""
+    """Returns the set of My List asset IDs, backed by a short-lived local cache so
+    ordinary browsing doesn't pay for an extra GraphQL round-trip on every listing."""
+    cache_path = _mylist_cache_path()
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r") as f:
+                cache = json.load(f)
+            if time.time() - cache.get("timestamp", 0) < MYLIST_CACHE_TTL:
+                return set(cache.get("ids") or [])
+        except Exception:
+            pass
+
     id_token = None
     try:
         from resources.lib.auth import PlaySuisseAuth
@@ -313,6 +352,7 @@ def get_my_list_ids():
     if not id_token:
         return set()
 
+    ids = set()
     try:
         page_data = api.get_page("my_list", token=id_token)
         modules = page_data.get("modules") or []
@@ -320,10 +360,21 @@ def get_my_list_ids():
             title_lower = (mod.get("title") or "").lower()
             if any(term in title_lower for term in ("ma liste", "meine liste", "la mia lista", "my list", "glista", "watchlist")):
                 assets = mod.get("assets") or []
-                return {str(a.get("id")) for a in assets if a.get("id")}
+                ids = {str(a.get("id")) for a in assets if a.get("id")}
+                break
     except Exception as e:
         xbmc.log(f"PlaySuisse: Failed to fetch My List IDs: {e}", xbmc.LOGERROR)
-    return set()
+        return set()
+
+    try:
+        tmp_path = f"{cache_path}.tmp"
+        with open(tmp_path, "w") as f:
+            json.dump({"ids": sorted(ids), "timestamp": time.time()}, f)
+        os.replace(tmp_path, cache_path)
+    except Exception:
+        pass
+
+    return ids
 
 
 def get_asset_context_menu(asset_id, name, is_in_mylist=False, is_resume_list=False, resume_seconds=0):
@@ -376,9 +427,11 @@ def get_episode_context_menu(ep_id, name, resume_seconds=0):
     return menu_items
 
 
-def list_assets(assets, is_resume_list=False):
+def list_assets(assets, is_resume_list=False, known_mylist_ids=None):
     """Helper to convert GraphQL asset structures to Kodi ListItems."""
-    my_list_ids = get_my_list_ids()
+    # If the caller already knows these assets are exactly the My List contents
+    # (e.g. we're rendering the My List page itself), skip the extra lookup entirely.
+    my_list_ids = known_mylist_ids if known_mylist_ids is not None else get_my_list_ids()
 
     for asset in assets:
         asset_id = asset.get("id")
@@ -542,8 +595,13 @@ def handle_watchlist(list_type):
                 break
 
     if target_module and target_module.get("assets"):
-        # If this is the 'Continue Watching' watchlist, tell list_assets to enable hide context action on all items
-        list_assets(target_module["assets"], is_resume_list=(list_type == "resume"))
+        assets = target_module["assets"]
+        if list_type == "watchlist":
+            # Every asset here is by definition in My List - no need to look it up.
+            list_assets(assets, known_mylist_ids={str(a.get("id")) for a in assets if a.get("id")})
+        else:
+            # If this is the 'Continue Watching' watchlist, tell list_assets to enable hide context action on all items
+            list_assets(assets, is_resume_list=(list_type == "resume"))
     else:
         xbmcplugin.endOfDirectory(ADDON_HANDLE, True)
 
@@ -681,6 +739,7 @@ def run():
             id_token = auth_mgr.get_token()
             if id_token:
                 api.add_to_my_list(item_id, token=id_token)
+                _invalidate_my_list_cache()
                 xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30113).format(title=title))
                 xbmc.executebuiltin("Container.Refresh")
         except Exception as e:
@@ -693,6 +752,7 @@ def run():
             id_token = auth_mgr.get_token()
             if id_token:
                 api.remove_from_my_list(item_id, token=id_token)
+                _invalidate_my_list_cache()
                 xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30115).format(title=title))
                 xbmc.executebuiltin("Container.Refresh")
         except Exception as e:
