@@ -36,8 +36,9 @@ class PlaySuissePlayer:
             # 2. Try to fetch playback session containing signed HLS URL and register play on server
             hls_url = None
             is_signed_url = False
+            playback_error = None
             try:
-                session_data = self.api.get_playback_session(asset_id, token=id_token)
+                session_data, playback_error = self.api.get_playback_session(asset_id, token=id_token)
                 playback_url = session_data.get("playbackUrl")
                 if playback_url:
                     hls_url = playback_url
@@ -78,9 +79,12 @@ class PlaySuissePlayer:
 
         if not hls_url:
             xbmc.log(f"PlaySuissePlayer: No HLS stream found for asset {asset_id}", xbmc.LOGERROR)
+            # Show the server's own reason (e.g. a device/session limit) when we have one,
+            # instead of always falling back to the generic "failed to play" message.
+            message = playback_error or self.addon.getLocalizedString(30100)
             xbmcgui.Dialog().notification(
                 self.addon.getAddonInfo('name'),
-                self.addon.getLocalizedString(30100),
+                message,
                 xbmcgui.NOTIFICATION_ERROR,
                 5000
             )

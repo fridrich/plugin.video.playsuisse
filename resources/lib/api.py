@@ -47,7 +47,8 @@ class PlaySuisseAPI:
         return "fr"
 
     def _query(self, query, variables=None, token=None):
-        """Executes a POST request to the Play Suisse GraphQL endpoint."""
+        """Executes a POST request to the Play Suisse GraphQL endpoint.
+        Returns (data, error_message); error_message is None on success."""
         locale = self._get_active_locale()
         headers = {
             "Content-Type": "application/json",
@@ -72,11 +73,13 @@ class PlaySuisseAPI:
                 errors = res_json.get("errors")
                 if errors:
                     xbmc.log(f"PlaySuisseAPI: GraphQL query returned errors: {errors}", xbmc.LOGERROR)
-                return res_json.get("data", {})
+                    message = "; ".join(err.get("message", str(err)) for err in errors)
+                    return res_json.get("data", {}), message
+                return res_json.get("data", {}), None
             xbmc.log(f"PlaySuisseAPI: GraphQL request failed with code {res.status_code}", xbmc.LOGERROR)
         except Exception as e:
             xbmc.log(f"PlaySuisseAPI: Connection error: {e}", xbmc.LOGERROR)
-        return {}
+        return {}, None
 
     def get_categories(self):
         """Returns a list of all categories with their associated pages."""
@@ -91,7 +94,7 @@ class PlaySuisseAPI:
             }
         }
         """
-        data = self._query(q)
+        data, _ = self._query(q)
         results = []
         for cat in data.get("categoriesV2", []):
             cat_id = cat.get("id")
@@ -183,7 +186,7 @@ class PlaySuisseAPI:
             }
         }
         """
-        data = self._query(q, {"pageId": page_id}, token=token)
+        data, _ = self._query(q, {"pageId": page_id}, token=token)
         page = data.get("pageV2") or {}
         modules_list = []
         for mod in page.get("modules", []):
@@ -278,7 +281,7 @@ class PlaySuisseAPI:
             }
         }
         """
-        data = self._query(q, {"query": search_query})
+        data, _ = self._query(q, {"query": search_query})
         page = data.get("searchPageV2") or {}
         assets_list = []
         # Pull all found assets from search modules
@@ -377,11 +380,12 @@ class PlaySuisseAPI:
             }
         }
         """
-        data = self._query(q, {"assetId": asset_id}, token=token)
+        data, _ = self._query(q, {"assetId": asset_id}, token=token)
         return data.get("assetV2") or {}
 
     def get_playback_session(self, asset_id, token=None):
-        """Creates a playback session on the server and retrieves the signed stream URL."""
+        """Creates a playback session on the server and retrieves the signed stream URL.
+        Returns (session_data, error_message); error_message is None on success."""
         q = """
         mutation PlaybackSession($assetId: String!) {
             playbackSession(assetId: $assetId) {
@@ -390,8 +394,8 @@ class PlaySuisseAPI:
             }
         }
         """
-        data = self._query(q, {"assetId": asset_id}, token=token)
-        return data.get("playbackSession") or {}
+        data, error = self._query(q, {"assetId": asset_id}, token=token)
+        return data.get("playbackSession") or {}, error
 
     def add_to_my_list(self, asset_id, token=None):
         """Adds an asset to the user's My List."""
@@ -402,7 +406,7 @@ class PlaySuisseAPI:
             }
         }
         """
-        data = self._query(q, {"assetId": asset_id}, token=token)
+        data, _ = self._query(q, {"assetId": asset_id}, token=token)
         return data.get("addToMyList") or {}
 
     def remove_from_my_list(self, asset_id, token=None):
@@ -414,7 +418,7 @@ class PlaySuisseAPI:
             }
         }
         """
-        data = self._query(q, {"assetId": asset_id}, token=token)
+        data, _ = self._query(q, {"assetId": asset_id}, token=token)
         return data.get("removeFromMyList") or {}
 
     def hide_from_continue_watching(self, asset_id, token=None):
@@ -424,5 +428,5 @@ class PlaySuisseAPI:
             hideAssetFromContinueWatching(id: $id)
         }
         """
-        data = self._query(q, {"id": asset_id}, token=token)
+        data, _ = self._query(q, {"id": asset_id}, token=token)
         return data.get("hideAssetFromContinueWatching") or False
