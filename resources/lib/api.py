@@ -66,7 +66,13 @@ class PlaySuisseAPI:
         try:
             res = requests.post(self.GRAPHQL_URL, json=payload, headers=headers, timeout=15)
             if res.ok:
-                return res.json().get("data", {})
+                res_json = res.json()
+                # HTTP 200 doesn't mean success in GraphQL - business-rule rejections
+                # (e.g. a device/session limit, DRM or geo checks) come back as "errors".
+                errors = res_json.get("errors")
+                if errors:
+                    xbmc.log(f"PlaySuisseAPI: GraphQL query returned errors: {errors}", xbmc.LOGERROR)
+                return res_json.get("data", {})
             xbmc.log(f"PlaySuisseAPI: GraphQL request failed with code {res.status_code}", xbmc.LOGERROR)
         except Exception as e:
             xbmc.log(f"PlaySuisseAPI: Connection error: {e}", xbmc.LOGERROR)
