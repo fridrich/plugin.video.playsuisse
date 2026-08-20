@@ -142,10 +142,6 @@ msgctxt "#30104"
 msgid "Invalid password. Please try again."
 msgstr "Plasidra nunvalida. Emprovai danovamain."
 
-msgctxt "#30105"
-msgid "Login failed on this device (possibly blocked by Cloudflare). To bypass this block, you can generate a session on your PC using the included tool 'gen_session.py' and copy 'session.json' to this device's profile directory. See README.md (Method C) for details."
-msgstr "S'annunziar betg reussì sin quest apparat (probablamain bloccà da Cloudflare). Per evitar quai, pudais Vus generar ina sessiun sin Voss PC cun l'instramaint 'gen_session.py' e copiar 'session.json' en il directori da profil da quest apparat. Vesair README.md (Metoda C) per detagls."
-
 
 msgctxt "#30110"
 msgid "Add to My List"

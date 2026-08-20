@@ -40,34 +40,19 @@ An unofficial third-party Kodi add-on for browsing and streaming content from **
 4. Enter your Play Suisse **Email** and **Password** in the on-screen keyboards.
 5. The add-on completes the PKCE handshake, creates your secure tokens, and immediately clears your password from the screen and settings.
 
-### Method B: Non-Interactive Setup (Samba / SSH / Headless)
-If typing a complex password using a standard television remote control is too cumbersome, you can use our secure non-interactive setup:
-1. Create a plain-text file named **`credentials.json`** on your computer.
-2. Populate the file with your login credentials in the following JSON format:
-   ```json
-   {
-     "email": "your_email@example.com",
-     "password": "your_secure_password"
-   }
+### Method B: Session Transfer (Non-Interactive Setup / Workaround for Cloudflare Blocks on Raspberry Pi / OSMC)
+If typing a complex password using a standard television remote control is too cumbersome, or if you are running Kodi on a device with an older Python/OpenSSL stack (such as **OSMC on a Raspberry Pi**) where Cloudflare protects the login portal with a `"Just a moment..."` browser challenge and blocks direct connection handshakes with a **403 Forbidden** error, you can generate your session on a regular computer instead and copy it over. This never writes your plaintext password to the Kodi device at all.
+
+1. On any PC with **Python 3** and the `requests` library installed (`pip install requests`), run the included `gen_session.py` script from this repository:
    ```
-3. Copy this file into your Kodi profile userdata directory:
-   * **Linux:** `~/.kodi/userdata/addon_data/plugin.video.playsuisse/credentials.json`
-   * **CoreELEC / LibreELEC:** `/storage/.kodi/userdata/addon_data/plugin.video.playsuisse/credentials.json`
-   * **Android:** `/sdcard/Android/data/org.xbmc.kodi/files/.kodi/userdata/addon_data/plugin.video.playsuisse/credentials.json`
-4. Launch any video or click "Authenticate" inside Play Suisse. 
-5. The add-on instantly reads `credentials.json`, authenticates with SRG SSR, generates your secure session tokens, and **immediately deletes the plaintext `credentials.json` file from your disk**.
-
-### Method C: Session Transfer (Workaround for Cloudflare Blocks on Raspberry Pi / OSMC)
-If you are running Kodi on a device with an older Python/OpenSSL stack (such as **OSMC on a Raspberry Pi**), Cloudflare may protect the login portal with a `"Just a moment..."` browser challenge and block direct connection handshakes with a **403 Forbidden** error. 
-
-Because we use standard **OAuth2 Refresh Tokens**, you can easily bypass this security check by generating the session on your PC and copying it over:
-1. Install and log in to the Play Suisse add-on on your **PC / Laptop** (where standard browser-level TLS fingerprints are accepted).
-2. Locate the generated **`session.json`** file inside your PC's userdata folder:
-   * **Windows:** `%APPDATA%\Kodi\userdata\addon_data\plugin.video.playsuisse\session.json`
-   * **macOS:** `~/Library/Application Support/Kodi/userdata/addon_data/plugin.video.playsuisse/session.json`
+   ./gen_session.py --username="your_email@example.com" > session.json
+   ```
+   You will be prompted for your password securely (masked input, never echoed or stored in your shell history). See the script's `--help` for alternative password input methods (password file or environment variable) if you prefer to avoid the interactive prompt.
+2. Copy the resulting **`session.json`** file into your Kodi device's profile userdata directory:
    * **Linux:** `~/.kodi/userdata/addon_data/plugin.video.playsuisse/session.json`
-3. Copy this **`session.json`** file directly into your Raspberry Pi's profile userdata folder (under `addon_data/plugin.video.playsuisse/`).
-4. **Result:** The add-on on your Raspberry Pi will immediately load and validate the session tokens, allowing you to stream seamlessly without ever needing to perform the blocked login handshake on the Pi itself!
+   * **CoreELEC / LibreELEC:** `/storage/.kodi/userdata/addon_data/plugin.video.playsuisse/session.json`
+   * **Android:** `/sdcard/Android/data/org.xbmc.kodi/files/.kodi/userdata/addon_data/plugin.video.playsuisse/session.json`
+3. **Result:** The add-on will immediately load and validate the session tokens, allowing you to stream seamlessly without ever needing to type your password on the device or perform the login handshake there.
 
 ---
 

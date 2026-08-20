@@ -142,10 +142,6 @@ msgctxt "#30104"
 msgid "Invalid password. Please try again."
 msgstr "Mot de passe invalide. Veuillez réessayer."
 
-msgctxt "#30105"
-msgid "Login failed on this device (possibly blocked by Cloudflare). To bypass this block, you can generate a session on your PC using the included tool 'gen_session.py' and copy 'session.json' to this device's profile directory. See README.md (Method C) for details."
-msgstr "Échec de la connexion sur cet appareil (possiblement bloqué par Cloudflare). Pour contourner ce blocage, vous pouvez générer une session sur votre PC à l'aide de l'outil inclus 'gen_session.py' et copier 'session.json' dans le répertoire de profil de cet appareil. Voir README.md (Méthode C) pour plus de détails."
-
 
 msgctxt "#30110"
 msgid "Add to My List"

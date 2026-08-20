@@ -38,30 +38,9 @@ class PlaySuisseAuth:
                 pass
 
         self.session_file = os.path.join(profile_dir, "session.json")
-        self.credentials_file = os.path.join(profile_dir, "credentials.json")
 
         # Log the expected path for easy debugging on any new device
-        msg1 = f"PlaySuisseAuth: Profile dir: {profile_dir}"
-        msg2 = f"PlaySuisseAuth: Expected credentials path: {self.credentials_file}"
-        xbmc.log(msg1, xbmc.LOGINFO)
-        xbmc.log(msg2, xbmc.LOGINFO)
-
-    def load_credentials(self):
-        """Loads email and password from settings or the private credentials file."""
-        email = self.addon.getSetting("email")
-        password = self.addon.getSetting("password")
-
-        if not email or not password:
-            if os.path.exists(self.credentials_file):
-                try:
-                    with open(self.credentials_file, "r") as f:
-                        data = json.load(f)
-                    email = email or data.get("email")
-                    password = password or data.get("password")
-                except Exception as e:
-                    xbmc.log(f"PlaySuisseAuth: Failed to read credentials file: {e}", xbmc.LOGERROR)
-
-        return email, password
+        xbmc.log(f"PlaySuisseAuth: Profile dir: {profile_dir}", xbmc.LOGINFO)
 
     def prompt_credentials_and_login(self):
         """Prompts the user interactively and authenticates, caching only tokens."""
@@ -94,63 +73,16 @@ class PlaySuisseAuth:
         xbmc.executebuiltin("ActivateWindow(busydialognocancel)")
         try:
             self._login_with_credentials(email, password)
-            # Clear plaintext settings to guarantee no local plaintext storage
-            self.addon.setSetting("email", "")
-            self.addon.setSetting("password", "")
             return True
         finally:
+            # Always clear the plaintext password, whether login succeeded or
+            # failed, so a failed attempt never leaves it sitting in settings.
+            self.addon.setSetting("password", "")
             xbmc.executebuiltin("Dialog.Close(busydialognocancel)")
 
     def get_token(self):
         """Returns a cached valid token, refreshes if expired, or performs login."""
-        # 1. Check if a temporary credentials.json exists for non-interactive login
-        if os.path.exists(self.credentials_file):
-            try:
-                with open(self.credentials_file, "r", encoding="utf-8", errors="ignore") as f:
-                    raw_content = f.read()
-
-                # Robust JSON pre-processing: escape single backslashes to handle unescaped characters in passwords
-                import re
-                processed_content = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', raw_content)
-
-                try:
-                    data = json.loads(processed_content)
-                except Exception as json_err:
-                    xbmc.log(f"PlaySuisseAuth: Strict JSON parse failed, trying raw: {json_err}", xbmc.LOGDEBUG)
-                    data = json.loads(raw_content)
-
-                email = data.get("email")
-                password = data.get("password")
-
-                if email and password:
-                    try:
-                        # Attempt login using credentials.json
-                        id_token, _ = self._login_with_credentials(email, password)
-
-                        # Successful! Delete the credentials file
-                        try:
-                            os.remove(self.credentials_file)
-                        except Exception:
-                            pass
-
-                        # Clear plaintext settings
-                        self.addon.setSetting("email", "")
-                        self.addon.setSetting("password", "")
-
-                        return id_token
-                    except Exception as login_err:
-                        xbmc.log(f"PlaySuisseAuth: Non-interactive login failed: {login_err}", xbmc.LOGERROR)
-
-                        # Inform user about the failure, pointing them to gen_session.py
-                        import xbmcgui
-                        xbmcgui.Dialog().ok(
-                            self.addon.getAddonInfo('name'),
-                            self.addon.getLocalizedString(30105)
-                        )
-            except Exception as e:
-                xbmc.log(f"PlaySuisseAuth: Error reading credentials file: {e}", xbmc.LOGERROR)
-
-        # 2. Try to read cached session
+        # 1. Try to read cached session
         if os.path.exists(self.session_file):
             try:
                 with open(self.session_file, "r") as f:
@@ -171,8 +103,7 @@ class PlaySuisseAuth:
             except Exception as e:
                 xbmc.log(f"PlaySuisseAuth: Error reading session cache: {e}", xbmc.LOGDEBUG)
 
-        # 3. No session, refresh token failed, or credentials.json failed/not present.
-        # Prompt the user interactively
+        # 2. No session, or refresh token failed. Prompt the user interactively
         if not self.prompt_credentials_and_login():
             raise Exception("CREDENTIALS_MISSING")
 
