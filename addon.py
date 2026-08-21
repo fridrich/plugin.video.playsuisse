@@ -46,7 +46,7 @@ MAIN_MENU_LANGUAGES = {
         "mylist": "Meine Liste",
         "continue_watching": "Weiterschauen",
         "search": "Suche",
-        "highlights": "Highlights"
+        "highlights": "Highlights",
     },
     "fr": {
         "home": "Accueil",
@@ -58,7 +58,7 @@ MAIN_MENU_LANGUAGES = {
         "mylist": "Ma liste",
         "continue_watching": "Reprendre la lecture",
         "search": "Recherche",
-        "highlights": "À la une"
+        "highlights": "À la une",
     },
     "it": {
         "home": "Home",
@@ -70,7 +70,7 @@ MAIN_MENU_LANGUAGES = {
         "mylist": "La mia lista",
         "continue_watching": "Continua a guardare",
         "search": "Cerca",
-        "highlights": "In primo piano"
+        "highlights": "In primo piano",
     },
     "rm": {
         "home": "Home",
@@ -82,7 +82,7 @@ MAIN_MENU_LANGUAGES = {
         "mylist": "Mia glista",
         "continue_watching": "Continuar la lectura",
         "search": "Tschertgar",
-        "highlights": "En evidenza"
+        "highlights": "En evidenza",
     },
     "en": {
         "home": "Home",
@@ -94,8 +94,8 @@ MAIN_MENU_LANGUAGES = {
         "mylist": "My List",
         "continue_watching": "Continue Watching",
         "search": "Search",
-        "highlights": "Highlights"
-    }
+        "highlights": "Highlights",
+    },
 }
 
 
@@ -131,39 +131,60 @@ def main_menu():
     id_token = None
     try:
         from resources.lib.auth import PlaySuisseAuth
+
         auth_mgr = PlaySuisseAuth(ADDON)
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
     except Exception as e:
-        xbmc.log(f"PlaySuisse: Main menu session check failed: {e}", xbmc.LOGDEBUG)
+        xbmc.log(
+            f"PlaySuisse: Main menu session check failed: {e}", xbmc.LOGDEBUG
+        )
 
     lang = get_main_menu_language()
     labels = MAIN_MENU_LANGUAGES.get(lang, MAIN_MENU_LANGUAGES["en"])
 
     # 1. Startseite (Page ID: homepage)
     home_item = xbmcgui.ListItem(label=labels["home"])
-    home_url = build_url({"mode": "page", "id": "homepage", "title": labels["home"]})
-    xbmcplugin.addDirectoryItem(ADDON_HANDLE, home_url, home_item, isFolder=True)
+    home_url = build_url(
+        {"mode": "page", "id": "homepage", "title": labels["home"]}
+    )
+    xbmcplugin.addDirectoryItem(
+        ADDON_HANDLE, home_url, home_item, isFolder=True
+    )
 
     # 2. Fiktion (Page ID: fiction)
     fiction_item = xbmcgui.ListItem(label=labels["fiction"])
-    fiction_url = build_url({"mode": "page", "id": "fiction", "title": labels["fiction"]})
-    xbmcplugin.addDirectoryItem(ADDON_HANDLE, fiction_url, fiction_item, isFolder=True)
+    fiction_url = build_url(
+        {"mode": "page", "id": "fiction", "title": labels["fiction"]}
+    )
+    xbmcplugin.addDirectoryItem(
+        ADDON_HANDLE, fiction_url, fiction_item, isFolder=True
+    )
 
     # 3. Docu (Page ID: documentary)
     doc_item = xbmcgui.ListItem(label=labels["documentary"])
-    doc_url = build_url({"mode": "page", "id": "documentary", "title": labels["documentary"]})
+    doc_url = build_url(
+        {"mode": "page", "id": "documentary", "title": labels["documentary"]}
+    )
     xbmcplugin.addDirectoryItem(ADDON_HANDLE, doc_url, doc_item, isFolder=True)
 
     # 4. Familie (Page ID: family)
     family_item = xbmcgui.ListItem(label=labels["family"])
-    family_url = build_url({"mode": "page", "id": "family", "title": labels["family"]})
-    xbmcplugin.addDirectoryItem(ADDON_HANDLE, family_url, family_item, isFolder=True)
+    family_url = build_url(
+        {"mode": "page", "id": "family", "title": labels["family"]}
+    )
+    xbmcplugin.addDirectoryItem(
+        ADDON_HANDLE, family_url, family_item, isFolder=True
+    )
 
     # 5. Musik (Page ID: music)
     music_item = xbmcgui.ListItem(label=labels["music"])
-    music_url = build_url({"mode": "page", "id": "music", "title": labels["music"]})
-    xbmcplugin.addDirectoryItem(ADDON_HANDLE, music_url, music_item, isFolder=True)
+    music_url = build_url(
+        {"mode": "page", "id": "music", "title": labels["music"]}
+    )
+    xbmcplugin.addDirectoryItem(
+        ADDON_HANDLE, music_url, music_item, isFolder=True
+    )
 
     # 6. Themen (Categories Folder)
     cat_item = xbmcgui.ListItem(label=labels["categories"])
@@ -174,18 +195,32 @@ def main_menu():
     if id_token:
         # 7. Meine Liste (Page ID: my_list)
         mylist_item = xbmcgui.ListItem(label=labels["mylist"])
-        mylist_url = build_url({"mode": "page", "id": "my_list", "title": labels["mylist"]})
-        xbmcplugin.addDirectoryItem(ADDON_HANDLE, mylist_url, mylist_item, isFolder=True)
+        mylist_url = build_url(
+            {"mode": "page", "id": "my_list", "title": labels["mylist"]}
+        )
+        xbmcplugin.addDirectoryItem(
+            ADDON_HANDLE, mylist_url, mylist_item, isFolder=True
+        )
 
         # 8. Weiterschauen (Page ID: continue_watching)
         resume_item = xbmcgui.ListItem(label=labels["continue_watching"])
-        resume_url = build_url({"mode": "watchlist", "id": "resume", "title": labels["continue_watching"]})
-        xbmcplugin.addDirectoryItem(ADDON_HANDLE, resume_url, resume_item, isFolder=True)
+        resume_url = build_url(
+            {
+                "mode": "watchlist",
+                "id": "resume",
+                "title": labels["continue_watching"],
+            }
+        )
+        xbmcplugin.addDirectoryItem(
+            ADDON_HANDLE, resume_url, resume_item, isFolder=True
+        )
 
     # 9. Suche (Search Folder)
     search_item = xbmcgui.ListItem(label=labels["search"])
     search_url = build_url({"mode": "search_input"})
-    xbmcplugin.addDirectoryItem(ADDON_HANDLE, search_url, search_item, isFolder=True)
+    xbmcplugin.addDirectoryItem(
+        ADDON_HANDLE, search_url, search_item, isFolder=True
+    )
 
     xbmcplugin.endOfDirectory(ADDON_HANDLE)
 
@@ -195,7 +230,9 @@ def list_categories():
     categories = api.get_categories()
     for cat in categories:
         item = xbmcgui.ListItem(label=cat["title"])
-        url = build_url({"mode": "page", "id": cat["page_id"], "title": cat["title"]})
+        url = build_url(
+            {"mode": "page", "id": cat["page_id"], "title": cat["title"]}
+        )
         xbmcplugin.addDirectoryItem(ADDON_HANDLE, url, item, isFolder=True)
     xbmcplugin.endOfDirectory(ADDON_HANDLE)
 
@@ -206,6 +243,7 @@ def list_page(page_id, page_title):
     id_token = None
     try:
         from resources.lib.auth import PlaySuisseAuth
+
         auth_mgr = PlaySuisseAuth(ADDON)
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
@@ -223,8 +261,14 @@ def list_page(page_id, page_title):
     if len(modules) == 1:
         assets = modules[0]["assets"]
         if page_id == "my_list":
-            # Every asset here is by definition in My List - no need to look it up.
-            list_assets(assets, known_mylist_ids={str(a.get("id")) for a in assets if a.get("id")})
+            # Every asset here is by definition in My List - no need to look
+            # it up.
+            list_assets(
+                assets,
+                known_mylist_ids={
+                    str(a.get("id")) for a in assets if a.get("id")
+                },
+            )
         else:
             list_assets(assets)
     else:
@@ -233,26 +277,50 @@ def list_page(page_id, page_title):
             title = mod.get("title") or ""
             title_lower = title.lower()
 
-            # Skip 'Continue Watching' and 'My List' modules on the homepage to avoid duplication with root menu shortcuts
+            # Skip 'Continue Watching' and 'My List' modules on the homepage
+            # to avoid duplication with root menu shortcuts
             if page_id == "homepage":
-                if any(term in title_lower for term in ("reprendre", "weiterschauen", "continua", "continue", "cuntinuar")):
+                if any(
+                    term in title_lower
+                    for term in (
+                        "reprendre",
+                        "weiterschauen",
+                        "continua",
+                        "continue",
+                        "cuntinuar",
+                    )
+                ):
                     continue
-                if any(term in title_lower for term in ("ma liste", "meine liste", "la mia lista", "my list", "glista", "watchlist")):
+                if any(
+                    term in title_lower
+                    for term in (
+                        "ma liste",
+                        "meine liste",
+                        "la mia lista",
+                        "my list",
+                        "glista",
+                        "watchlist",
+                    )
+                ):
                     continue
 
             # The web's main carousel is internally named "Smart Hero V3" etc.
             if "smart hero" in title_lower:
                 lang = get_main_menu_language()
-                labels = MAIN_MENU_LANGUAGES.get(lang, MAIN_MENU_LANGUAGES["en"])
+                labels = MAIN_MENU_LANGUAGES.get(
+                    lang, MAIN_MENU_LANGUAGES["en"]
+                )
                 title = labels["highlights"]
 
             item = xbmcgui.ListItem(label=title)
-            url = build_url({
-                "mode": "module",
-                "page_id": page_id,
-                "module_idx": i,
-                "title": title
-            })
+            url = build_url(
+                {
+                    "mode": "module",
+                    "page_id": page_id,
+                    "module_idx": i,
+                    "title": title,
+                }
+            )
             xbmcplugin.addDirectoryItem(ADDON_HANDLE, url, item, isFolder=True)
         xbmcplugin.endOfDirectory(ADDON_HANDLE)
 
@@ -263,6 +331,7 @@ def list_module(page_id, module_idx):
     id_token = None
     try:
         from resources.lib.auth import PlaySuisseAuth
+
         auth_mgr = PlaySuisseAuth(ADDON)
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
@@ -279,7 +348,9 @@ def list_module(page_id, module_idx):
 
 
 def get_resume_position(asset):
-    """Safely parses the resume position in seconds from the GraphQL 'watch' structure."""
+    """Safely parses the resume position in seconds from the GraphQL
+    'watch' structure.
+    """
     watch = asset.get("watch")
     if not watch:
         return 0
@@ -309,7 +380,9 @@ MYLIST_CACHE_TTL = 60  # seconds
 
 
 def _mylist_cache_path():
-    """Resolves the path to the local My List id cache file, creating the profile dir if needed."""
+    """Resolves the path to the local My List id cache file, creating the
+    profile dir if needed.
+    """
     profile_dir = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
     if not os.path.exists(profile_dir):
         try:
@@ -320,7 +393,9 @@ def _mylist_cache_path():
 
 
 def _invalidate_my_list_cache():
-    """Drops the cached My List ids so the next listing re-fetches the authoritative set."""
+    """Drops the cached My List ids so the next listing re-fetches the
+    authoritative set.
+    """
     try:
         os.remove(_mylist_cache_path())
     except Exception:
@@ -328,8 +403,10 @@ def _invalidate_my_list_cache():
 
 
 def get_my_list_ids():
-    """Returns the set of My List asset IDs, backed by a short-lived local cache so
-    ordinary browsing doesn't pay for an extra GraphQL round-trip on every listing."""
+    """Returns the set of My List asset IDs, backed by a short-lived
+    local cache so ordinary browsing doesn't pay for an extra GraphQL
+    round-trip on every listing.
+    """
     cache_path = _mylist_cache_path()
     if os.path.exists(cache_path):
         try:
@@ -343,6 +420,7 @@ def get_my_list_ids():
     id_token = None
     try:
         from resources.lib.auth import PlaySuisseAuth
+
         auth_mgr = PlaySuisseAuth(ADDON)
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
@@ -358,12 +436,24 @@ def get_my_list_ids():
         modules = page_data.get("modules") or []
         for mod in modules:
             title_lower = (mod.get("title") or "").lower()
-            if any(term in title_lower for term in ("ma liste", "meine liste", "la mia lista", "my list", "glista", "watchlist")):
+            if any(
+                term in title_lower
+                for term in (
+                    "ma liste",
+                    "meine liste",
+                    "la mia lista",
+                    "my list",
+                    "glista",
+                    "watchlist",
+                )
+            ):
                 assets = mod.get("assets") or []
                 ids = {str(a.get("id")) for a in assets if a.get("id")}
                 break
     except Exception as e:
-        xbmc.log(f"PlaySuisse: Failed to fetch My List IDs: {e}", xbmc.LOGERROR)
+        xbmc.log(
+            f"PlaySuisse: Failed to fetch My List IDs: {e}", xbmc.LOGERROR
+        )
         return set()
 
     try:
@@ -377,11 +467,14 @@ def get_my_list_ids():
     return ids
 
 
-def get_asset_context_menu(asset_id, name, is_in_mylist=False, is_resume_list=False, resume_seconds=0):
+def get_asset_context_menu(
+    asset_id, name, is_in_mylist=False, is_resume_list=False, resume_seconds=0
+):
     """Builds custom context menu actions dynamically based on state."""
     id_token = None
     try:
         from resources.lib.auth import PlaySuisseAuth
+
         auth_mgr = PlaySuisseAuth(ADDON)
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
@@ -395,13 +488,45 @@ def get_asset_context_menu(asset_id, name, is_in_mylist=False, is_resume_list=Fa
 
     # 1. My List context action (Add vs Remove)
     if is_in_mylist:
-        menu_items.append((ADDON.getLocalizedString(30111), f"RunPlugin({build_url({'mode': 'remove_mylist', 'id': asset_id, 'title': name})})"))
+        menu_items.append(
+            (
+                ADDON.getLocalizedString(30111),
+                "RunPlugin({})".format(
+                    build_url(
+                        {
+                            "mode": "remove_mylist",
+                            "id": asset_id,
+                            "title": name,
+                        }
+                    )
+                ),
+            )
+        )
     else:
-        menu_items.append((ADDON.getLocalizedString(30110), f"RunPlugin({build_url({'mode': 'add_mylist', 'id': asset_id, 'title': name})})"))
+        menu_items.append(
+            (
+                ADDON.getLocalizedString(30110),
+                "RunPlugin({})".format(
+                    build_url(
+                        {"mode": "add_mylist", "id": asset_id, "title": name}
+                    )
+                ),
+            )
+        )
 
-    # 2. Continue Watching context action (only if it has progress or we are in the resume list)
+    # 2. Continue Watching context action (only if it has progress or we are
+    # in the resume list)
     if is_resume_list or resume_seconds > 0:
-        menu_items.append((ADDON.getLocalizedString(30112), f"RunPlugin({build_url({'mode': 'hide_resume', 'id': asset_id, 'title': name})})"))
+        menu_items.append(
+            (
+                ADDON.getLocalizedString(30112),
+                "RunPlugin({})".format(
+                    build_url(
+                        {"mode": "hide_resume", "id": asset_id, "title": name}
+                    )
+                ),
+            )
+        )
 
     return menu_items
 
@@ -411,6 +536,7 @@ def get_episode_context_menu(ep_id, name, resume_seconds=0):
     id_token = None
     try:
         from resources.lib.auth import PlaySuisseAuth
+
         auth_mgr = PlaySuisseAuth(ADDON)
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
@@ -421,17 +547,23 @@ def get_episode_context_menu(ep_id, name, resume_seconds=0):
         return []
 
     menu_items = []
-    # Episodes cannot be added to My List individually (only Series can), but can be hidden from Continue Watching
+    # Episodes cannot be added to My List individually (only Series can),
+    # but can be hidden from Continue Watching
     if resume_seconds > 0:
-        menu_items.append((ADDON.getLocalizedString(30112), f"RunPlugin({build_url({'mode': 'hide_resume', 'id': ep_id, 'title': name})})"))
+        url = build_url({"mode": "hide_resume", "id": ep_id, "title": name})
+        menu_items.append(
+            (ADDON.getLocalizedString(30112), f"RunPlugin({url})")
+        )
     return menu_items
 
 
 def list_assets(assets, is_resume_list=False, known_mylist_ids=None):
     """Helper to convert GraphQL asset structures to Kodi ListItems."""
-    # If the caller already knows these assets are exactly the My List contents
-    # (e.g. we're rendering the My List page itself), skip the extra lookup entirely.
-    my_list_ids = known_mylist_ids if known_mylist_ids is not None else get_my_list_ids()
+    # If the caller knows these assets are exactly the My List contents
+    # (e.g. rendering the My List page), skip the extra lookup entirely.
+    my_list_ids = (
+        known_mylist_ids if known_mylist_ids is not None else get_my_list_ids()
+    )
 
     for asset in assets:
         asset_id = asset.get("id")
@@ -461,28 +593,39 @@ def list_assets(assets, is_resume_list=False, known_mylist_ids=None):
 
         # Context menu actions (My List & Continue Watching)
         is_in_mylist = str(asset_id) in my_list_ids
-        item.addContextMenuItems(get_asset_context_menu(asset_id, name, is_in_mylist, is_resume_list, resume_seconds))
+        item.addContextMenuItems(
+            get_asset_context_menu(
+                asset_id, name, is_in_mylist, is_resume_list, resume_seconds
+            )
+        )
 
         # Thumbnail
         thumb = asset.get("thumbnail16x9") or {}
         thumb_url = thumb.get("url")
         if thumb_url:
-            item.setArt({"thumb": thumb_url, "poster": thumb_url, "fanart": thumb_url})
+            item.setArt(
+                {"thumb": thumb_url, "poster": thumb_url, "fanart": thumb_url}
+            )
 
-        # Set play progress / resume position for Kodi to display progress and prompt for resume
+        # Set play progress / resume position for Kodi to display progress and
+        # prompt for resume
         if resume_seconds > 0:
             item.setProperty("ResumeTime", str(resume_seconds))
             if duration:
                 item.setProperty("TotalTime", str(duration))
 
         if is_series:
-            url = build_url({"mode": "series_details", "id": asset_id, "title": name})
+            url = build_url(
+                {"mode": "series_details", "id": asset_id, "title": name}
+            )
             xbmcplugin.addDirectoryItem(ADDON_HANDLE, url, item, isFolder=True)
         else:
             # Playable Movie
             url = build_url({"mode": "play", "id": asset_id, "title": name})
             item.setProperty("IsPlayable", "true")
-            xbmcplugin.addDirectoryItem(ADDON_HANDLE, url, item, isFolder=False)
+            xbmcplugin.addDirectoryItem(
+                ADDON_HANDLE, url, item, isFolder=False
+            )
 
     xbmcplugin.setContent(ADDON_HANDLE, "videos")
     xbmcplugin.endOfDirectory(ADDON_HANDLE)
@@ -494,6 +637,7 @@ def list_series_episodes(series_id, series_title):
     id_token = None
     try:
         from resources.lib.auth import PlaySuisseAuth
+
         auth_mgr = PlaySuisseAuth(ADDON)
         if os.path.exists(auth_mgr.session_file):
             id_token = auth_mgr.get_token()
@@ -541,15 +685,20 @@ def list_series_episodes(series_id, series_title):
         resume_seconds = get_resume_position(ep)
 
         # Context menu actions for episodes
-        item.addContextMenuItems(get_episode_context_menu(ep_id, name, resume_seconds))
+        item.addContextMenuItems(
+            get_episode_context_menu(ep_id, name, resume_seconds)
+        )
 
         # Thumbnail
         thumb = ep.get("thumbnail16x9") or {}
         thumb_url = thumb.get("url")
         if thumb_url:
-            item.setArt({"thumb": thumb_url, "poster": thumb_url, "fanart": thumb_url})
+            item.setArt(
+                {"thumb": thumb_url, "poster": thumb_url, "fanart": thumb_url}
+            )
 
-        # Set play progress / resume position for Kodi to display progress and prompt for resume
+        # Set play progress / resume position for Kodi to display progress and
+        # prompt for resume
         if resume_seconds > 0:
             item.setProperty("ResumeTime", str(resume_seconds))
             if duration:
@@ -564,14 +713,19 @@ def list_series_episodes(series_id, series_title):
 
 
 def handle_watchlist(list_type):
-    """Fetches the homepage and filters out the 'My List' or 'Continue Watching' module."""
+    """Fetches the homepage and filters out the 'My List' or
+    'Continue Watching' module.
+    """
     id_token = None
     try:
         from resources.lib.auth import PlaySuisseAuth
+
         auth_mgr = PlaySuisseAuth(ADDON)
         id_token = auth_mgr.get_token()
     except Exception as e:
-        xbmc.log(f"PlaySuisse: Watchlist authentication failed: {e}", xbmc.LOGERROR)
+        xbmc.log(
+            f"PlaySuisse: Watchlist authentication failed: {e}", xbmc.LOGERROR
+        )
         xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
         return
 
@@ -586,21 +740,47 @@ def handle_watchlist(list_type):
     for mod in modules:
         title_lower = (mod.get("title") or "").lower()
         if list_type == "watchlist":
-            if any(term in title_lower for term in ("ma liste", "meine liste", "la mia lista", "my list", "glista", "watchlist")):
+            if any(
+                term in title_lower
+                for term in (
+                    "ma liste",
+                    "meine liste",
+                    "la mia lista",
+                    "my list",
+                    "glista",
+                    "watchlist",
+                )
+            ):
                 target_module = mod
                 break
         elif list_type == "resume":
-            if any(term in title_lower for term in ("reprendre", "weiterschauen", "continua", "continue", "cuntinuar")):
+            if any(
+                term in title_lower
+                for term in (
+                    "reprendre",
+                    "weiterschauen",
+                    "continua",
+                    "continue",
+                    "cuntinuar",
+                )
+            ):
                 target_module = mod
                 break
 
     if target_module and target_module.get("assets"):
         assets = target_module["assets"]
         if list_type == "watchlist":
-            # Every asset here is by definition in My List - no need to look it up.
-            list_assets(assets, known_mylist_ids={str(a.get("id")) for a in assets if a.get("id")})
+            # Every asset here is by definition in My List - no need to look
+            # it up.
+            list_assets(
+                assets,
+                known_mylist_ids={
+                    str(a.get("id")) for a in assets if a.get("id")
+                },
+            )
         else:
-            # If this is the 'Continue Watching' watchlist, tell list_assets to enable hide context action on all items
+            # If this is the 'Continue Watching' watchlist, tell list_assets to
+            # enable hide context action on all items
             list_assets(assets, is_resume_list=(list_type == "resume"))
     else:
         xbmcplugin.endOfDirectory(ADDON_HANDLE, True)
@@ -624,6 +804,7 @@ def handle_search_input():
 def handle_login():
     """Triggers authentication with email and password prompting."""
     from resources.lib.auth import PlaySuisseAuth
+
     auth = PlaySuisseAuth(ADDON)
 
     # Clear existing session cache to force fresh handshake
@@ -639,8 +820,7 @@ def handle_login():
             return
 
         xbmcgui.Dialog().ok(
-            ADDON.getAddonInfo('name'),
-            ADDON.getLocalizedString(30102)
+            ADDON.getAddonInfo('name'), ADDON.getLocalizedString(30102)
         )
     except Exception as e:
         err_str = str(e)
@@ -656,8 +836,7 @@ def handle_login():
             msg_id = 30100
 
         xbmcgui.Dialog().ok(
-            ADDON.getAddonInfo('name'),
-            ADDON.getLocalizedString(msg_id)
+            ADDON.getAddonInfo('name'), ADDON.getLocalizedString(msg_id)
         )
 
 
@@ -692,16 +871,30 @@ def handle_keymap_sync():
             try:
                 with open(keymap_file, "w") as f:
                     f.write(keymap_content)
-                xbmc.log("PlaySuisse: Successfully wrote custom Home-to-Fullscreen keymap.", xbmc.LOGINFO)
+                xbmc.log(
+                    "PlaySuisse: Successfully wrote custom "
+                    "Home-to-Fullscreen keymap.",
+                    xbmc.LOGINFO,
+                )
             except Exception as e:
-                xbmc.log(f"PlaySuisse: Failed to write custom keymap: {e}", xbmc.LOGERROR)
+                xbmc.log(
+                    f"PlaySuisse: Failed to write custom keymap: {e}",
+                    xbmc.LOGERROR,
+                )
     else:
         if os.path.exists(keymap_file):
             try:
                 os.remove(keymap_file)
-                xbmc.log("PlaySuisse: Successfully removed custom Home-to-Fullscreen keymap.", xbmc.LOGINFO)
+                xbmc.log(
+                    "PlaySuisse: Successfully removed custom "
+                    "Home-to-Fullscreen keymap.",
+                    xbmc.LOGINFO,
+                )
             except Exception as e:
-                xbmc.log(f"PlaySuisse: Failed to remove custom keymap: {e}", xbmc.LOGERROR)
+                xbmc.log(
+                    f"PlaySuisse: Failed to remove custom keymap: {e}",
+                    xbmc.LOGERROR,
+                )
 
 
 def run():
@@ -735,41 +928,64 @@ def run():
     elif mode == "add_mylist":
         try:
             from resources.lib.auth import PlaySuisseAuth
+
             auth_mgr = PlaySuisseAuth(ADDON)
             id_token = auth_mgr.get_token()
             if id_token:
                 api.add_to_my_list(item_id, token=id_token)
                 _invalidate_my_list_cache()
-                xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30113).format(title=title))
+                xbmcgui.Dialog().notification(
+                    "Play Suisse",
+                    ADDON.getLocalizedString(30113).format(title=title),
+                )
                 xbmc.executebuiltin("Container.Refresh")
         except Exception as e:
             xbmc.log(f"PlaySuisse: Add to My List failed: {e}", xbmc.LOGERROR)
-            xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30114))
+            xbmcgui.Dialog().notification(
+                "Play Suisse", ADDON.getLocalizedString(30114)
+            )
     elif mode == "remove_mylist":
         try:
             from resources.lib.auth import PlaySuisseAuth
+
             auth_mgr = PlaySuisseAuth(ADDON)
             id_token = auth_mgr.get_token()
             if id_token:
                 api.remove_from_my_list(item_id, token=id_token)
                 _invalidate_my_list_cache()
-                xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30115).format(title=title))
+                xbmcgui.Dialog().notification(
+                    "Play Suisse",
+                    ADDON.getLocalizedString(30115).format(title=title),
+                )
                 xbmc.executebuiltin("Container.Refresh")
         except Exception as e:
-            xbmc.log(f"PlaySuisse: Remove from My List failed: {e}", xbmc.LOGERROR)
-            xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30116))
+            xbmc.log(
+                f"PlaySuisse: Remove from My List failed: {e}", xbmc.LOGERROR
+            )
+            xbmcgui.Dialog().notification(
+                "Play Suisse", ADDON.getLocalizedString(30116)
+            )
     elif mode == "hide_resume":
         try:
             from resources.lib.auth import PlaySuisseAuth
+
             auth_mgr = PlaySuisseAuth(ADDON)
             id_token = auth_mgr.get_token()
             if id_token:
                 api.hide_from_continue_watching(item_id, token=id_token)
-                xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30117).format(title=title))
+                xbmcgui.Dialog().notification(
+                    "Play Suisse",
+                    ADDON.getLocalizedString(30117).format(title=title),
+                )
                 xbmc.executebuiltin("Container.Refresh")
         except Exception as e:
-            xbmc.log(f"PlaySuisse: Hide from Continue Watching failed: {e}", xbmc.LOGERROR)
-            xbmcgui.Dialog().notification("Play Suisse", ADDON.getLocalizedString(30118))
+            xbmc.log(
+                f"PlaySuisse: Hide from Continue Watching failed: {e}",
+                xbmc.LOGERROR,
+            )
+            xbmcgui.Dialog().notification(
+                "Play Suisse", ADDON.getLocalizedString(30118)
+            )
 
 
 if __name__ == "__main__":

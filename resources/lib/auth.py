@@ -24,18 +24,38 @@ try:
 except ImportError:
     curl_requests = None
 
+
 class PlaySuisseAuth:
-    """Manages the PKCE OAuth2 session login, token caching, and token refresh flows."""
+    """Manages the PKCE OAuth2 session login, token caching, and token
+    refresh flows.
+    """
 
     CLIENT_ID = "1e33f1bf-8bf3-45e4-bbd9-c9ad934b5fca"
     LOGIN_BASE = "https://account.srgssr.ch"
 
-    USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    SEC_CH_UA = '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"'
+    USER_AGENT = (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
+    SEC_CH_UA = (
+        '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"'
+    )
 
     @classmethod
-    def _browser_headers(cls, accept, referer, dest, mode, site, origin=None, content_type=None, navigation=False):
-        """Builds a Chrome 120-like header set for one PKCE flow step (to match the TLS impersonation)."""
+    def _browser_headers(
+        cls,
+        accept,
+        referer,
+        dest,
+        mode,
+        site,
+        origin=None,
+        content_type=None,
+        navigation=False,
+    ):
+        """Builds a Chrome 120-like header set for one PKCE flow step (to
+        match the TLS impersonation).
+        """
         headers = {
             "User-Agent": cls.USER_AGENT,
             "Accept": accept,
@@ -47,14 +67,16 @@ class PlaySuisseAuth:
         if origin:
             headers["Origin"] = origin
         headers["Referer"] = referer
-        headers.update({
-            "Sec-Ch-Ua": cls.SEC_CH_UA,
-            "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": '"Linux"',
-            "Sec-Fetch-Dest": dest,
-            "Sec-Fetch-Mode": mode,
-            "Sec-Fetch-Site": site,
-        })
+        headers.update(
+            {
+                "Sec-Ch-Ua": cls.SEC_CH_UA,
+                "Sec-Ch-Ua-Mobile": "?0",
+                "Sec-Ch-Ua-Platform": '"Linux"',
+                "Sec-Fetch-Dest": dest,
+                "Sec-Fetch-Mode": mode,
+                "Sec-Fetch-Site": site,
+            }
+        )
         if navigation:
             headers["Sec-Fetch-User"] = "?1"
             headers["Upgrade-Insecure-Requests"] = "1"
@@ -77,8 +99,11 @@ class PlaySuisseAuth:
         xbmc.log(f"PlaySuisseAuth: Profile dir: {profile_dir}", xbmc.LOGINFO)
 
     def prompt_credentials_and_login(self):
-        """Prompts the user interactively and authenticates, caching only tokens."""
-        # Safety: Close any busy dialog so that the keyboards are fully interactive
+        """Prompts the user interactively and authenticates, caching only
+        tokens.
+        """
+        # Safety: Close any busy dialog so that the keyboards are fully
+        # interactive
         xbmc.executebuiltin("Dialog.Close(busydialognocancel)")
 
         # Pre-fill keyboard inputs with any legacy values from settings
@@ -95,7 +120,9 @@ class PlaySuisseAuth:
             return False
 
         # Prompt for Password
-        keyboard = xbmc.Keyboard(password, self.addon.getLocalizedString(30001), True)
+        keyboard = xbmc.Keyboard(
+            password, self.addon.getLocalizedString(30001), True
+        )
         keyboard.doModal()
         if not keyboard.isConfirmed():
             return False
@@ -115,7 +142,9 @@ class PlaySuisseAuth:
             xbmc.executebuiltin("Dialog.Close(busydialognocancel)")
 
     def get_token(self):
-        """Returns a cached valid token, refreshes if expired, or performs login."""
+        """Returns a cached valid token, refreshes if expired, or performs
+        login.
+        """
         # 1. Try to read cached session
         if os.path.exists(self.session_file):
             try:
@@ -124,7 +153,8 @@ class PlaySuisseAuth:
                 token = session_data.get("id_token")
                 refresh_token = session_data.get("refresh_token")
 
-                # Check if cached id_token is less than 50 minutes old (tokens last 1hr)
+                # Check if cached id_token is less than 50 minutes old
+                # (tokens last 1hr)
                 if time.time() - session_data.get("timestamp", 0) < 3000:
                     return token
 
@@ -133,9 +163,15 @@ class PlaySuisseAuth:
                     try:
                         return self._refresh_token(refresh_token)
                     except Exception as e:
-                        xbmc.log(f"PlaySuisseAuth: Token refresh failed: {e}", xbmc.LOGDEBUG)
+                        xbmc.log(
+                            f"PlaySuisseAuth: Token refresh failed: {e}",
+                            xbmc.LOGDEBUG,
+                        )
             except Exception as e:
-                xbmc.log(f"PlaySuisseAuth: Error reading session cache: {e}", xbmc.LOGDEBUG)
+                xbmc.log(
+                    f"PlaySuisseAuth: Error reading session cache: {e}",
+                    xbmc.LOGDEBUG,
+                )
 
         # 2. No session, or refresh token failed. Prompt the user interactively
         if not self.prompt_credentials_and_login():
@@ -153,7 +189,9 @@ class PlaySuisseAuth:
         raise Exception("LOGIN_FAILED")
 
     def _write_session_cache(self, data):
-        """Atomically writes the session cache to avoid a truncated file on a crash or power loss."""
+        """Atomically writes the session cache to avoid a truncated file on
+        a crash or power loss.
+        """
         profile_dir = os.path.dirname(self.session_file)
         if not os.path.exists(profile_dir):
             os.makedirs(profile_dir)
@@ -163,7 +201,10 @@ class PlaySuisseAuth:
                 json.dump(data, f)
             os.replace(tmp_path, self.session_file)
         except Exception as e:
-            xbmc.log(f"PlaySuisseAuth: Failed to write session cache: {e}", xbmc.LOGERROR)
+            xbmc.log(
+                f"PlaySuisseAuth: Failed to write session cache: {e}",
+                xbmc.LOGERROR,
+            )
 
     def _refresh_token(self, refresh_token):
         """Trades a cached refresh token for a fresh id_token."""
@@ -173,12 +214,16 @@ class PlaySuisseAuth:
             session = requests.Session()
 
         session.headers.clear()
-        session.headers.update(self._browser_headers(
-            accept="application/json, text/plain, */*",
-            referer="https://www.playsuisse.ch/",
-            origin="https://www.playsuisse.ch",
-            dest="empty", mode="cors", site="cross-site",
-        ))
+        session.headers.update(
+            self._browser_headers(
+                accept="application/json, text/plain, */*",
+                referer="https://www.playsuisse.ch/",
+                origin="https://www.playsuisse.ch",
+                dest="empty",
+                mode="cors",
+                site="cross-site",
+            )
+        )
 
         token_url = f"{self.LOGIN_BASE}/proxy/token"
         params = {
@@ -199,20 +244,29 @@ class PlaySuisseAuth:
             raise Exception("REFRESH_FAILED")
 
         # Cache the new session tokens
-        self._write_session_cache({
-            "id_token": id_token,
-            "refresh_token": new_refresh_token,
-            "timestamp": time.time()
-        })
+        self._write_session_cache(
+            {
+                "id_token": id_token,
+                "refresh_token": new_refresh_token,
+                "timestamp": time.time(),
+            }
+        )
 
         return id_token
 
     def _login_with_credentials(self, email, password):
-        """Executes the full multi-step OAuth2 PKCE login handshake in pure Python."""
+        """Executes the full multi-step OAuth2 PKCE login handshake in pure
+        Python.
+        """
         # 1. Generate PKCE Verifier and Challenge
         code_verifier = uuid.uuid4().hex + uuid.uuid4().hex + uuid.uuid4().hex
-        code_challenge = base64.urlsafe_b64encode(
-            hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
+        code_challenge = (
+            base64.urlsafe_b64encode(
+                hashlib.sha256(code_verifier.encode()).digest()
+            )
+            .decode()
+            .rstrip('=')
+        )
 
         if curl_requests:
             session = curl_requests.Session(impersonate="chrome120")
@@ -231,21 +285,37 @@ class PlaySuisseAuth:
             'view_type': 'login',
         }
         session.headers.clear()
-        session.headers.update(self._browser_headers(
-            accept="text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            referer="https://www.playsuisse.ch/",
-            dest="document", mode="navigate", site="cross-site", navigation=True,
-        ))
+        session.headers.update(
+            self._browser_headers(
+                accept=(
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                    "image/avif,image/webp,image/apng,*/*;q=0.8,"
+                    "application/signed-exchange;v=b3;q=0.7"
+                ),
+                referer="https://www.playsuisse.ch/",
+                dest="document",
+                mode="navigate",
+                site="cross-site",
+                navigation=True,
+            )
+        )
         res = session.get(authz_url, params=params, timeout=15)
         parsed_query = parse_qs(urlparse(res.url).query)
         request_id = parsed_query.get('requestId', [None])[0]
         if not request_id:
-            msg = f"PlaySuisseAuth: Step 1 authz failed. Status: {res.status_code}, URL: {res.url}, Body: {res.text[:500]}"
+            msg = (
+                f"PlaySuisseAuth: Step 1 authz failed. "
+                f"Status: {res.status_code}, URL: {res.url}, "
+                f"Body: {res.text[:500]}"
+            )
             xbmc.log(msg, xbmc.LOGERROR)
             raise Exception("AUTHZ_FAILED")
 
         # Step 2: Submit username (initiate)
-        init_url = f"{self.LOGIN_BASE}/verification-srv/v2/authenticate/initiate/password"
+        init_url = (
+            f"{self.LOGIN_BASE}/verification-srv/v2"
+            "/authenticate/initiate/password"
+        )
         payload = {
             'usage_type': 'INITIAL_AUTHENTICATION',
             'request_id': request_id,
@@ -254,21 +324,30 @@ class PlaySuisseAuth:
             'identifier': email,
         }
         session.headers.clear()
-        session.headers.update(self._browser_headers(
-            accept="application/json, text/plain, */*",
-            referer=res.url,
-            origin="https://account.srgssr.ch",
-            content_type="application/json",
-            dest="empty", mode="cors", site="same-origin",
-        ))
+        session.headers.update(
+            self._browser_headers(
+                accept="application/json, text/plain, */*",
+                referer=res.url,
+                origin="https://account.srgssr.ch",
+                content_type="application/json",
+                dest="empty",
+                mode="cors",
+                site="same-origin",
+            )
+        )
         res = session.post(init_url, json=payload, timeout=15)
         res_json = res.json()
-        exchange_id = res_json.get('data', {}).get('exchange_id', {}).get('exchange_id')
+        exchange_id = (
+            res_json.get('data', {}).get('exchange_id', {}).get('exchange_id')
+        )
         if not exchange_id:
             raise Exception("USERNAME_INVALID")
 
         # Step 3: Submit password (authenticate)
-        auth_url = f"{self.LOGIN_BASE}/verification-srv/v2/authenticate/authenticate/password"
+        auth_url = (
+            f"{self.LOGIN_BASE}/verification-srv/v2"
+            "/authenticate/authenticate/password"
+        )
         payload = {
             'requestId': request_id,
             'exchange_id': exchange_id,
@@ -276,13 +355,17 @@ class PlaySuisseAuth:
             'password': password,
         }
         session.headers.clear()
-        session.headers.update(self._browser_headers(
-            accept="application/json, text/plain, */*",
-            referer=res.url,
-            origin="https://account.srgssr.ch",
-            content_type="application/json",
-            dest="empty", mode="cors", site="same-origin",
-        ))
+        session.headers.update(
+            self._browser_headers(
+                accept="application/json, text/plain, */*",
+                referer=res.url,
+                origin="https://account.srgssr.ch",
+                content_type="application/json",
+                dest="empty",
+                mode="cors",
+                site="same-origin",
+            )
+        )
         res = session.post(auth_url, json=payload, timeout=15)
         res_json = res.json()
         login_data = res_json.get('data')
@@ -302,13 +385,22 @@ class PlaySuisseAuth:
             'lon': '',
         }
         session.headers.clear()
-        session.headers.update(self._browser_headers(
-            accept="text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            referer=res.url,
-            origin="https://account.srgssr.ch",
-            content_type="application/x-www-form-urlencoded",
-            dest="document", mode="navigate", site="same-origin", navigation=True,
-        ))
+        session.headers.update(
+            self._browser_headers(
+                accept=(
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                    "image/avif,image/webp,image/apng,*/*;q=0.8,"
+                    "application/signed-exchange;v=b3;q=0.7"
+                ),
+                referer=res.url,
+                origin="https://account.srgssr.ch",
+                content_type="application/x-www-form-urlencoded",
+                dest="document",
+                mode="navigate",
+                site="same-origin",
+                navigation=True,
+            )
+        )
         res = session.post(verify_url, data=payload, timeout=15)
         parsed_query = parse_qs(urlparse(res.url).query)
         authorization_code = parsed_query.get('code', [None])[0]
@@ -325,12 +417,16 @@ class PlaySuisseAuth:
             'grant_type': 'authorization_code',
         }
         session.headers.clear()
-        session.headers.update(self._browser_headers(
-            accept="application/json, text/plain, */*",
-            referer="https://www.playsuisse.ch/",
-            origin="https://www.playsuisse.ch",
-            dest="empty", mode="cors", site="cross-site",
-        ))
+        session.headers.update(
+            self._browser_headers(
+                accept="application/json, text/plain, */*",
+                referer="https://www.playsuisse.ch/",
+                origin="https://www.playsuisse.ch",
+                dest="empty",
+                mode="cors",
+                site="cross-site",
+            )
+        )
         res = session.post(token_url, params=params, timeout=15)
         res_json = res.json()
         id_token = res_json.get('id_token')
@@ -339,10 +435,12 @@ class PlaySuisseAuth:
             raise Exception("TOKEN_TRADE_FAILED")
 
         # Cache the session to disk
-        self._write_session_cache({
-            "id_token": id_token,
-            "refresh_token": refresh_token,
-            "timestamp": time.time()
-        })
+        self._write_session_cache(
+            {
+                "id_token": id_token,
+                "refresh_token": refresh_token,
+                "timestamp": time.time(),
+            }
+        )
 
         return id_token, refresh_token

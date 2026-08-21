@@ -7,10 +7,12 @@
 #      ./gen_session.py --username="your_email@example.com" > session.json
 #
 #   2. Password File (No Escaping Needed):
-#      ./gen_session.py --username="your_email@example.com" --password-file="pass.txt" > session.json
+#      ./gen_session.py --username="your_email@example.com" \
+#          --password-file="pass.txt" > session.json
 #
 #   3. Command Line (Requires Single Quotes):
-#      ./gen_session.py --username="your_email@example.com" --password='your_password_here' > session.json
+#      ./gen_session.py --username="your_email@example.com" \
+#          --password='your_password_here' > session.json
 
 import sys
 import os
@@ -43,12 +45,26 @@ def error(msg):
     sys.exit(1)
 
 
-USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
 SEC_CH_UA = '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"'
 
 
-def browser_headers(accept, referer, dest, mode, site, origin=None, content_type=None, navigation=False):
-    """Builds a Chrome 120-like header set for one PKCE flow step (to match the TLS impersonation)."""
+def browser_headers(
+    accept,
+    referer,
+    dest,
+    mode,
+    site,
+    origin=None,
+    content_type=None,
+    navigation=False,
+):
+    """Builds a Chrome 120-like header set for one PKCE flow step (to match
+    the TLS impersonation).
+    """
     headers = {
         "User-Agent": USER_AGENT,
         "Accept": accept,
@@ -60,14 +76,16 @@ def browser_headers(accept, referer, dest, mode, site, origin=None, content_type
     if origin:
         headers["Origin"] = origin
     headers["Referer"] = referer
-    headers.update({
-        "Sec-Ch-Ua": SEC_CH_UA,
-        "Sec-Ch-Ua-Mobile": "?0",
-        "Sec-Ch-Ua-Platform": '"Linux"',
-        "Sec-Fetch-Dest": dest,
-        "Sec-Fetch-Mode": mode,
-        "Sec-Fetch-Site": site,
-    })
+    headers.update(
+        {
+            "Sec-Ch-Ua": SEC_CH_UA,
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Linux"',
+            "Sec-Fetch-Dest": dest,
+            "Sec-Fetch-Mode": mode,
+            "Sec-Fetch-Site": site,
+        }
+    )
     if navigation:
         headers["Sec-Fetch-User"] = "?1"
         headers["Upgrade-Insecure-Requests"] = "1"
@@ -81,6 +99,7 @@ def getpass_masked(prompt="[*] Enter Play Suisse Password: ", mask="*"):
 
     try:
         import msvcrt
+
         while True:
             ch = msvcrt.getch()
             if ch in (b'\r', b'\n'):
@@ -106,6 +125,7 @@ def getpass_masked(prompt="[*] Enter Play Suisse Password: ", mask="*"):
         fd = sys.stdin.fileno()
         if not os.isatty(fd):
             import getpass
+
             return getpass.getpass(prompt="", stream=sys.stderr)
 
         old_settings = termios.tcgetattr(fd)
@@ -136,15 +156,17 @@ def getpass_masked(prompt="[*] Enter Play Suisse Password: ", mask="*"):
 def main():
     description = "Generate Play Suisse session tokens securely on a PC."
     epilog = """
-Password Input Methods (to prevent shell-escaping issues with special characters):
+Password Input Methods (to prevent shell-escaping issues with special
+characters):
 
   1. SECURE INTERACTIVE PROMPT (Recommended & 100% Shell-Immune):
-     Omit --password and --password-file. The script will prompt you privately:
+     Omit --password and --password-file. The script will prompt you:
      ./gen_session.py --username="your_email@example.com" > session.json
 
   2. PASSWORD FILE (100% Shell-Immune):
-     Write your password exactly as-is into a local file and pass its path:
-     ./gen_session.py --username="your_email@example.com" --password-file="pass.txt" > session.json
+     Write your password exactly as-is into a local file:
+     ./gen_session.py --username="your_email@example.com" \
+         --password-file="pass.txt" > session.json
 
   3. ENVIRONMENT VARIABLE (100% Shell-Immune):
      Export your password to PLAYSUISSE_PASSWORD before running:
@@ -152,17 +174,26 @@ Password Input Methods (to prevent shell-escaping issues with special characters
      ./gen_session.py --username="your_email@example.com" > session.json
 
   4. SINGLE QUOTES:
-     If passing on the command line, wrap it in single quotes to disable shell expansions:
-     ./gen_session.py --username="your_email@example.com" --password='your_password' > session.json
+     Wrap in single quotes to disable shell expansions:
+     ./gen_session.py --username="your_email@example.com" \
+         --password='your_password' > session.json
 """
     parser = argparse.ArgumentParser(
         description=description,
         epilog=epilog,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--username", required=True, help="Play Suisse account email")
-    parser.add_argument("--password", required=False, help="Play Suisse account password")
-    parser.add_argument("--password-file", required=False, help="Path to a text file containing the password as-is")
+    parser.add_argument(
+        "--username", required=True, help="Play Suisse account email"
+    )
+    parser.add_argument(
+        "--password", required=False, help="Play Suisse account password"
+    )
+    parser.add_argument(
+        "--password-file",
+        required=False,
+        help="Path to a text file containing the password as-is",
+    )
     args = parser.parse_args()
 
     email = args.username
@@ -175,7 +206,9 @@ Password Input Methods (to prevent shell-escaping issues with special characters
         if not os.path.exists(args.password_file):
             error(f"Password file not found at: {args.password_file}")
         try:
-            with open(args.password_file, "r", encoding="utf-8", errors="ignore") as f:
+            with open(
+                args.password_file, "r", encoding="utf-8", errors="ignore"
+            ) as f:
                 password = f.read().rstrip("\r\n")
             log(f"Loaded password from file: {args.password_file}")
         except Exception as e:
@@ -185,26 +218,42 @@ Password Input Methods (to prevent shell-escaping issues with special characters
         env_pass = os.environ.get("PLAYSUISSE_PASSWORD")
         if env_pass:
             password = env_pass
-            log("Loaded password from environment variable PLAYSUISSE_PASSWORD")
+            log(
+                "Loaded password from environment variable PLAYSUISSE_PASSWORD"
+            )
         else:
-            # Secure interactive prompt fallback (completely immune to shell escaping!)
-            # sys.stderr is used for the prompt so that your redirected stdout (> session.json) remains pristine!
+            # Secure interactive prompt fallback (completely immune to shell
+            # escaping!)
+            # sys.stderr is used for the prompt so that your redirected
+            # stdout (> session.json) remains pristine!
             try:
-                password = getpass_masked(prompt="[*] Enter Play Suisse Password (masked): ")
+                password = getpass_masked(
+                    prompt="[*] Enter Play Suisse Password (masked): "
+                )
             except Exception as e:
                 error(f"Failed to read password from secure prompt: {e}")
 
     if not password:
-        error("Password is required. Provide it via --password, --password-file, PLAYSUISSE_PASSWORD env, or interactively.")
+        error(
+            "Password is required. Provide it via --password, "
+            "--password-file, PLAYSUISSE_PASSWORD env, or interactively."
+        )
 
     log("Generating PKCE Challenge...")
     code_verifier = uuid.uuid4().hex + uuid.uuid4().hex + uuid.uuid4().hex
-    code_challenge = base64.urlsafe_b64encode(
-        hashlib.sha256(code_verifier.encode()).digest()
-    ).decode().rstrip('=')
+    code_challenge = (
+        base64.urlsafe_b64encode(
+            hashlib.sha256(code_verifier.encode()).digest()
+        )
+        .decode()
+        .rstrip('=')
+    )
 
     if curl_requests:
-        log("Detected curl_cffi library! Using Chrome 120 impersonation to bypass Cloudflare...")
+        log(
+            "Detected curl_cffi library! Using Chrome 120 "
+            "impersonation to bypass Cloudflare..."
+        )
         session = curl_requests.Session(impersonate="chrome120")
     else:
         log("Using standard requests library...")
@@ -223,11 +272,20 @@ Password Input Methods (to prevent shell-escaping issues with special characters
         'view_type': 'login',
     }
     session.headers.clear()
-    session.headers.update(browser_headers(
-        accept="text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        referer="https://www.playsuisse.ch/",
-        dest="document", mode="navigate", site="cross-site", navigation=True,
-    ))
+    session.headers.update(
+        browser_headers(
+            accept=(
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8,"
+                "application/signed-exchange;v=b3;q=0.7"
+            ),
+            referer="https://www.playsuisse.ch/",
+            dest="document",
+            mode="navigate",
+            site="cross-site",
+            navigation=True,
+        )
+    )
     res = session.get(authz_url, params=params, timeout=15)
     parsed_query = parse_qs(urlparse(res.url).query)
     request_id = parsed_query.get('requestId', [None])[0]
@@ -236,7 +294,9 @@ Password Input Methods (to prevent shell-escaping issues with special characters
 
     # Step 2: Submit username
     log("Step 2: Submitting username...")
-    init_url = f"{LOGIN_BASE}/verification-srv/v2/authenticate/initiate/password"
+    init_url = (
+        f"{LOGIN_BASE}/verification-srv/v2/authenticate/initiate/password"
+    )
     payload = {
         'usage_type': 'INITIAL_AUTHENTICATION',
         'request_id': request_id,
@@ -245,22 +305,30 @@ Password Input Methods (to prevent shell-escaping issues with special characters
         'identifier': email,
     }
     session.headers.clear()
-    session.headers.update(browser_headers(
-        accept="application/json, text/plain, */*",
-        referer=res.url,
-        origin="https://account.srgssr.ch",
-        content_type="application/json",
-        dest="empty", mode="cors", site="same-origin",
-    ))
+    session.headers.update(
+        browser_headers(
+            accept="application/json, text/plain, */*",
+            referer=res.url,
+            origin="https://account.srgssr.ch",
+            content_type="application/json",
+            dest="empty",
+            mode="cors",
+            site="same-origin",
+        )
+    )
     res = session.post(init_url, json=payload, timeout=15)
     res_json = res.json()
-    exchange_id = res_json.get('data', {}).get('exchange_id', {}).get('exchange_id')
+    exchange_id = (
+        res_json.get('data', {}).get('exchange_id', {}).get('exchange_id')
+    )
     if not exchange_id:
         error("Step 2 failed (USERNAME_INVALID). Please verify your email.")
 
     # Step 3: Submit password
     log("Step 3: Submitting password...")
-    auth_url = f"{LOGIN_BASE}/verification-srv/v2/authenticate/authenticate/password"
+    auth_url = (
+        f"{LOGIN_BASE}/verification-srv/v2/authenticate/authenticate/password"
+    )
     payload = {
         'requestId': request_id,
         'exchange_id': exchange_id,
@@ -268,13 +336,17 @@ Password Input Methods (to prevent shell-escaping issues with special characters
         'password': password,
     }
     session.headers.clear()
-    session.headers.update(browser_headers(
-        accept="application/json, text/plain, */*",
-        referer=res.url,
-        origin="https://account.srgssr.ch",
-        content_type="application/json",
-        dest="empty", mode="cors", site="same-origin",
-    ))
+    session.headers.update(
+        browser_headers(
+            accept="application/json, text/plain, */*",
+            referer=res.url,
+            origin="https://account.srgssr.ch",
+            content_type="application/json",
+            dest="empty",
+            mode="cors",
+            site="same-origin",
+        )
+    )
     res = session.post(auth_url, json=payload, timeout=15)
     res_json = res.json()
     login_data = res_json.get('data')
@@ -295,13 +367,22 @@ Password Input Methods (to prevent shell-escaping issues with special characters
         'lon': '',
     }
     session.headers.clear()
-    session.headers.update(browser_headers(
-        accept="text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        referer=res.url,
-        origin="https://account.srgssr.ch",
-        content_type="application/x-www-form-urlencoded",
-        dest="document", mode="navigate", site="same-origin", navigation=True,
-    ))
+    session.headers.update(
+        browser_headers(
+            accept=(
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8,"
+                "application/signed-exchange;v=b3;q=0.7"
+            ),
+            referer=res.url,
+            origin="https://account.srgssr.ch",
+            content_type="application/x-www-form-urlencoded",
+            dest="document",
+            mode="navigate",
+            site="same-origin",
+            navigation=True,
+        )
+    )
     res = session.post(verify_url, data=payload, timeout=15)
     parsed_query = parse_qs(urlparse(res.url).query)
     authorization_code = parsed_query.get('code', [None])[0]
@@ -319,12 +400,16 @@ Password Input Methods (to prevent shell-escaping issues with special characters
         'grant_type': 'authorization_code',
     }
     session.headers.clear()
-    session.headers.update(browser_headers(
-        accept="application/json, text/plain, */*",
-        referer="https://www.playsuisse.ch/",
-        origin="https://www.playsuisse.ch",
-        dest="empty", mode="cors", site="cross-site",
-    ))
+    session.headers.update(
+        browser_headers(
+            accept="application/json, text/plain, */*",
+            referer="https://www.playsuisse.ch/",
+            origin="https://www.playsuisse.ch",
+            dest="empty",
+            mode="cors",
+            site="cross-site",
+        )
+    )
     res = session.post(token_url, params=params, timeout=15)
     res_json = res.json()
     id_token = res_json.get('id_token')
@@ -336,7 +421,10 @@ Password Input Methods (to prevent shell-escaping issues with special characters
     log("Step 6: Fetching active profile ID...")
     profile_id = None
     try:
-        graphql_url = "https://www.playsuisse.ch/api/graphql?complex_subs=true&stipo_env=production2&discontinuity=true"
+        graphql_url = (
+            "https://www.playsuisse.ch/api/graphql"
+            "?complex_subs=true&stipo_env=production2&discontinuity=true"
+        )
         query_payload = [
             {
                 "operationName": "AppConfig",
@@ -344,9 +432,12 @@ Password Input Methods (to prevent shell-escaping issues with special characters
                 "extensions": {
                     "persistedQuery": {
                         "version": 1,
-                        "sha256Hash": "3cdb8a136dccdaee568e872c55c2d30578a919a3f02656b335bec80a88129d89"
+                        "sha256Hash": (
+                            "3cdb8a136dccdaee568e872c55c2d30"
+                            "578a919a3f02656b335bec80a88129d89"
+                        ),
                     }
-                }
+                },
             },
             {
                 "operationName": "UserProfileWithPreferencesAndUserInfo",
@@ -354,22 +445,29 @@ Password Input Methods (to prevent shell-escaping issues with special characters
                 "extensions": {
                     "persistedQuery": {
                         "version": 1,
-                        "sha256Hash": "93b24b6d887b532304d2fbc6a422b52092d853edf17cf33488ccf0218f8c6e3c"
+                        "sha256Hash": (
+                            "93b24b6d887b532304d2fbc6a422b52"
+                            "092d853edf17cf33488ccf0218f8c6e3c"
+                        ),
                     }
-                }
-            }
+                },
+            },
         ]
         headers = {
             "Authorization": f"Bearer {id_token}",
             "Content-Type": "application/json",
             "x-playsuisse-app": "id=web&version=1.1.27",
-            "x-playsuisse-locale": "fr"
+            "x-playsuisse-locale": "fr",
         }
-        graphql_res = session.post(graphql_url, json=query_payload, headers=headers, timeout=15)
+        graphql_res = session.post(
+            graphql_url, json=query_payload, headers=headers, timeout=15
+        )
         if graphql_res.status_code == 200:
             res_data = graphql_res.json()
             if res_data and isinstance(res_data, list) and len(res_data) > 1:
-                profile_data = res_data[1].get("data", {}).get("userProfile", {})
+                profile_data = (
+                    res_data[1].get("data", {}).get("userProfile", {})
+                )
                 profile_id = profile_data.get("profileId")
                 if profile_id:
                     log(f"Active profile ID pre-fetched: {profile_id}")
@@ -380,7 +478,7 @@ Password Input Methods (to prevent shell-escaping issues with special characters
     output_data = {
         "id_token": id_token,
         "refresh_token": refresh_token,
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
     if profile_id:
         output_data["profile_id"] = profile_id

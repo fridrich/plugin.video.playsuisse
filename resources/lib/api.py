@@ -10,6 +10,7 @@
 import requests
 import xbmc
 
+
 class PlaySuisseAPI:
     """GraphQL client for unauthenticated Play Suisse catalog browsing."""
 
@@ -19,8 +20,11 @@ class PlaySuisseAPI:
         pass
 
     def _get_active_locale(self):
-        """Gets the locale based on the addon setting, falling back to Kodi's language."""
+        """Gets the locale based on the addon setting, falling back to
+        Kodi's language.
+        """
         import xbmcaddon
+
         try:
             addon = xbmcaddon.Addon("plugin.video.playsuisse")
             lang_setting = addon.getSetting("language")
@@ -55,28 +59,41 @@ class PlaySuisseAPI:
             "locale": locale,
             "x-playsuisse-locale": locale,
             "x-playsuisse-app": "id=web&version=1.1.27",
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": (
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            ),
         }
         if token:
             headers["Authorization"] = f"Bearer {token}"
             headers["x-playsuisse-access-token"] = token
-        payload = {
-            "query": query,
-            "variables": variables or {}
-        }
+        payload = {"query": query, "variables": variables or {}}
         try:
-            res = requests.post(self.GRAPHQL_URL, json=payload, headers=headers, timeout=15)
+            res = requests.post(
+                self.GRAPHQL_URL, json=payload, headers=headers, timeout=15
+            )
             if res.ok:
                 res_json = res.json()
-                # HTTP 200 doesn't mean success in GraphQL - business-rule rejections
-                # (e.g. a device/session limit, DRM or geo checks) come back as "errors".
+                # HTTP 200 doesn't mean success in GraphQL - business-rule
+                # rejections (e.g. a device/session limit, DRM or geo checks)
+                # come back as "errors".
                 errors = res_json.get("errors")
                 if errors:
-                    xbmc.log(f"PlaySuisseAPI: GraphQL query returned errors: {errors}", xbmc.LOGERROR)
-                    message = "; ".join(err.get("message", str(err)) for err in errors)
+                    xbmc.log(
+                        "PlaySuisseAPI: GraphQL query returned errors: "
+                        f"{errors}",
+                        xbmc.LOGERROR,
+                    )
+                    message = "; ".join(
+                        err.get("message", str(err)) for err in errors
+                    )
                     return res_json.get("data", {}), message
                 return res_json.get("data", {}), None
-            xbmc.log(f"PlaySuisseAPI: GraphQL request failed with code {res.status_code}", xbmc.LOGERROR)
+            xbmc.log(
+                "PlaySuisseAPI: GraphQL request failed with code "
+                f"{res.status_code}",
+                xbmc.LOGERROR,
+            )
         except Exception as e:
             xbmc.log(f"PlaySuisseAPI: Connection error: {e}", xbmc.LOGERROR)
         return {}, None
@@ -101,11 +118,7 @@ class PlaySuisseAPI:
             page = cat.get("page") or {}
             title = page.get("title") or cat_id.capitalize()
             page_id = page.get("id") or cat_id
-            results.append({
-                "id": cat_id,
-                "page_id": page_id,
-                "title": title
-            })
+            results.append({"id": cat_id, "page_id": page_id, "title": title})
         return sorted(results, key=lambda x: x["title"])
 
     def get_page(self, page_id, token=None):
@@ -193,16 +206,18 @@ class PlaySuisseAPI:
             assets = mod.get("assets") or []
             if not assets:
                 continue
-            modules_list.append({
-                "typename": mod.get("__typename"),
-                "title": mod.get("title") or page.get("title") or "Videos",
-                "assets": assets
-            })
+            modules_list.append(
+                {
+                    "typename": mod.get("__typename"),
+                    "title": mod.get("title") or page.get("title") or "Videos",
+                    "assets": assets,
+                }
+            )
         return {
             "id": page.get("id"),
             "title": page.get("title"),
             "description": page.get("description"),
-            "modules": modules_list
+            "modules": modules_list,
         }
 
     def search(self, search_query):
@@ -305,7 +320,9 @@ class PlaySuisseAPI:
         return unique_assets
 
     def get_asset(self, asset_id, token=None):
-        """Retrieves detailed asset metadata and its episodes if it's a series."""
+        """Retrieves detailed asset metadata and its episodes if it's a
+        series.
+        """
         q = """
         query GetAsset($assetId: ID!) {
             assetV2(id: $assetId) {
@@ -384,8 +401,11 @@ class PlaySuisseAPI:
         return data.get("assetV2") or {}
 
     def get_playback_session(self, asset_id, token=None):
-        """Creates a playback session on the server and retrieves the signed stream URL.
-        Returns (session_data, error_message); error_message is None on success."""
+        """Creates a playback session and retrieves the signed stream URL.
+
+        Returns (session_data, error_message); error_message is None
+        on success.
+        """
         q = """
         mutation PlaybackSession($assetId: String!) {
             playbackSession(assetId: $assetId) {
