@@ -178,3 +178,7 @@ msgstr "'{title}' aus Weiterschauen entfernt"
 msgctxt "#30118"
 msgid "Failed to remove from Continue Watching"
 msgstr "Entfernen aus Weiterschauen fehlgeschlagen"
+
+msgctxt "#30119"
+msgid "Your Play+Suisse session has expired. Please log in again."
+msgstr "Ihre Play+Suisse-Sitzung ist abgelaufen. Bitte melden Sie sich erneut an."

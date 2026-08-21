@@ -19,6 +19,7 @@ import xbmcgui
 import xbmcplugin
 import xbmcvfs
 
+from resources.lib.auth import PlaySuisseAuth
 from resources.lib.api import PlaySuisseAPI
 from resources.lib.player import PlaySuissePlayer
 
@@ -28,11 +29,39 @@ BASE_URL = sys.argv[0]
 
 api = PlaySuisseAPI()
 player = PlaySuissePlayer(ADDON)
+auth_mgr = PlaySuisseAuth(ADDON)
 
 
 def build_url(query):
     """Utility to build callback URLs for Kodi plugin routing."""
     return f"{BASE_URL}?{urlencode(query)}"
+
+
+def get_cached_token():
+    """Returns the cached auth token without ever prompting for login.
+
+    Used by read-only menu/listing code that should silently render as
+    "logged out" when there is no session yet, rather than forcing an
+    interactive login prompt just from browsing.
+    """
+    try:
+        if os.path.exists(auth_mgr.session_file):
+            return auth_mgr.get_token()
+    except Exception as e:
+        xbmc.log(f"PlaySuisse: Session check failed: {e}", xbmc.LOGDEBUG)
+    return None
+
+
+def notify_session_expired():
+    """Tells the user their session died server-side (e.g. a revoked or
+    rejected token) instead of just silently showing an empty listing.
+    """
+    xbmcgui.Dialog().notification(
+        ADDON.getAddonInfo('name'),
+        ADDON.getLocalizedString(30119),
+        xbmcgui.NOTIFICATION_ERROR,
+        5000,
+    )
 
 
 MAIN_MENU_LANGUAGES = {
@@ -128,17 +157,7 @@ def get_main_menu_language():
 def main_menu():
     """Renders the main menu of the addon mimicking the official web portal."""
     # Check if we have an authenticated session silently
-    id_token = None
-    try:
-        from resources.lib.auth import PlaySuisseAuth
-
-        auth_mgr = PlaySuisseAuth(ADDON)
-        if os.path.exists(auth_mgr.session_file):
-            id_token = auth_mgr.get_token()
-    except Exception as e:
-        xbmc.log(
-            f"PlaySuisse: Main menu session check failed: {e}", xbmc.LOGDEBUG
-        )
+    token = get_cached_token()
 
     lang = get_main_menu_language()
     labels = MAIN_MENU_LANGUAGES.get(lang, MAIN_MENU_LANGUAGES["en"])
@@ -192,7 +211,7 @@ def main_menu():
     xbmcplugin.addDirectoryItem(ADDON_HANDLE, cat_url, cat_item, isFolder=True)
 
     # If authenticated, show personalized My List and Continue Watching
-    if id_token:
+    if token:
         # 7. Meine Liste (Page ID: my_list)
         mylist_item = xbmcgui.ListItem(label=labels["mylist"])
         mylist_url = build_url(
@@ -240,20 +259,14 @@ def list_categories():
 def list_page(page_id, page_title):
     """Renders modules or assets on a specific page."""
     # Check if we have an authenticated session silently
-    id_token = None
-    try:
-        from resources.lib.auth import PlaySuisseAuth
+    token = get_cached_token()
 
-        auth_mgr = PlaySuisseAuth(ADDON)
-        if os.path.exists(auth_mgr.session_file):
-            id_token = auth_mgr.get_token()
-    except Exception:
-        pass
-
-    page_data = api.get_page(page_id, token=id_token)
+    page_data, page_error = api.get_page(page_id, token=token)
     modules = page_data.get("modules") or []
 
     if not modules:
+        if page_error == "AUTH_EXPIRED":
+            notify_session_expired()
         xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
         return
 
@@ -328,22 +341,16 @@ def list_page(page_id, page_title):
 def list_module(page_id, module_idx):
     """Lists assets inside a specific module of a page."""
     # Check if we have an authenticated session silently
-    id_token = None
-    try:
-        from resources.lib.auth import PlaySuisseAuth
+    token = get_cached_token()
 
-        auth_mgr = PlaySuisseAuth(ADDON)
-        if os.path.exists(auth_mgr.session_file):
-            id_token = auth_mgr.get_token()
-    except Exception:
-        pass
-
-    page_data = api.get_page(page_id, token=id_token)
+    page_data, page_error = api.get_page(page_id, token=token)
     modules = page_data.get("modules") or []
     try:
         module = modules[int(module_idx)]
         list_assets(module["assets"])
     except (IndexError, ValueError):
+        if page_error == "AUTH_EXPIRED":
+            notify_session_expired()
         xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
 
 
@@ -417,22 +424,14 @@ def get_my_list_ids():
         except Exception:
             pass
 
-    id_token = None
-    try:
-        from resources.lib.auth import PlaySuisseAuth
+    token = get_cached_token()
 
-        auth_mgr = PlaySuisseAuth(ADDON)
-        if os.path.exists(auth_mgr.session_file):
-            id_token = auth_mgr.get_token()
-    except Exception:
-        pass
-
-    if not id_token:
+    if not token:
         return set()
 
     ids = set()
     try:
-        page_data = api.get_page("my_list", token=id_token)
+        page_data, _ = api.get_page("my_list", token=token)
         modules = page_data.get("modules") or []
         for mod in modules:
             title_lower = (mod.get("title") or "").lower()
@@ -471,17 +470,9 @@ def get_asset_context_menu(
     asset_id, name, is_in_mylist=False, is_resume_list=False, resume_seconds=0
 ):
     """Builds custom context menu actions dynamically based on state."""
-    id_token = None
-    try:
-        from resources.lib.auth import PlaySuisseAuth
+    token = get_cached_token()
 
-        auth_mgr = PlaySuisseAuth(ADDON)
-        if os.path.exists(auth_mgr.session_file):
-            id_token = auth_mgr.get_token()
-    except Exception:
-        pass
-
-    if not id_token:
+    if not token:
         return []
 
     menu_items = []
@@ -533,17 +524,9 @@ def get_asset_context_menu(
 
 def get_episode_context_menu(ep_id, name, resume_seconds=0):
     """Builds custom context menu actions for episodes."""
-    id_token = None
-    try:
-        from resources.lib.auth import PlaySuisseAuth
+    token = get_cached_token()
 
-        auth_mgr = PlaySuisseAuth(ADDON)
-        if os.path.exists(auth_mgr.session_file):
-            id_token = auth_mgr.get_token()
-    except Exception:
-        pass
-
-    if not id_token:
+    if not token:
         return []
 
     menu_items = []
@@ -634,18 +617,13 @@ def list_assets(assets, is_resume_list=False, known_mylist_ids=None):
 def list_series_episodes(series_id, series_title):
     """Lists all episodes belonging to a series."""
     # Check if we have an authenticated session silently
-    id_token = None
-    try:
-        from resources.lib.auth import PlaySuisseAuth
+    token = get_cached_token()
 
-        auth_mgr = PlaySuisseAuth(ADDON)
-        if os.path.exists(auth_mgr.session_file):
-            id_token = auth_mgr.get_token()
-    except Exception:
-        pass
-
-    asset_data = api.get_asset(series_id, token=id_token)
+    asset_data, asset_error = api.get_asset(series_id, token=token)
     episodes = asset_data.get("episodes") or []
+
+    if not episodes and asset_error == "AUTH_EXPIRED":
+        notify_session_expired()
 
     for ep in episodes:
         ep_id = ep.get("id")
@@ -716,12 +694,8 @@ def handle_watchlist(list_type):
     """Fetches the homepage and filters out the 'My List' or
     'Continue Watching' module.
     """
-    id_token = None
     try:
-        from resources.lib.auth import PlaySuisseAuth
-
-        auth_mgr = PlaySuisseAuth(ADDON)
-        id_token = auth_mgr.get_token()
+        token = auth_mgr.get_token()
     except Exception as e:
         xbmc.log(
             f"PlaySuisse: Watchlist authentication failed: {e}", xbmc.LOGERROR
@@ -729,11 +703,11 @@ def handle_watchlist(list_type):
         xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
         return
 
-    if not id_token:
+    if not token:
         xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
         return
 
-    page_data = api.get_page("homepage", token=id_token)
+    page_data, _ = api.get_page("homepage", token=token)
     modules = page_data.get("modules") or []
 
     target_module = None
@@ -803,20 +777,16 @@ def handle_search_input():
 
 def handle_login():
     """Triggers authentication with email and password prompting."""
-    from resources.lib.auth import PlaySuisseAuth
-
-    auth = PlaySuisseAuth(ADDON)
-
     # Clear existing session cache to force fresh handshake
-    if os.path.exists(auth.session_file):
+    if os.path.exists(auth_mgr.session_file):
         try:
-            os.remove(auth.session_file)
+            os.remove(auth_mgr.session_file)
         except Exception:
             pass
 
     # Prompt and perform login handshake
     try:
-        if not auth.prompt_credentials_and_login():
+        if not auth_mgr.prompt_credentials_and_login():
             return
 
         xbmcgui.Dialog().ok(
@@ -927,12 +897,9 @@ def run():
         player.resolve_and_play(ADDON_HANDLE, item_id, title)
     elif mode == "add_mylist":
         try:
-            from resources.lib.auth import PlaySuisseAuth
-
-            auth_mgr = PlaySuisseAuth(ADDON)
-            id_token = auth_mgr.get_token()
-            if id_token:
-                api.add_to_my_list(item_id, token=id_token)
+            token = auth_mgr.get_token()
+            if token:
+                api.add_to_my_list(item_id, token=token)
                 _invalidate_my_list_cache()
                 xbmcgui.Dialog().notification(
                     "Play Suisse",
@@ -946,12 +913,9 @@ def run():
             )
     elif mode == "remove_mylist":
         try:
-            from resources.lib.auth import PlaySuisseAuth
-
-            auth_mgr = PlaySuisseAuth(ADDON)
-            id_token = auth_mgr.get_token()
-            if id_token:
-                api.remove_from_my_list(item_id, token=id_token)
+            token = auth_mgr.get_token()
+            if token:
+                api.remove_from_my_list(item_id, token=token)
                 _invalidate_my_list_cache()
                 xbmcgui.Dialog().notification(
                     "Play Suisse",
@@ -967,12 +931,9 @@ def run():
             )
     elif mode == "hide_resume":
         try:
-            from resources.lib.auth import PlaySuisseAuth
-
-            auth_mgr = PlaySuisseAuth(ADDON)
-            id_token = auth_mgr.get_token()
-            if id_token:
-                api.hide_from_continue_watching(item_id, token=id_token)
+            token = auth_mgr.get_token()
+            if token:
+                api.hide_from_continue_watching(item_id, token=token)
                 xbmcgui.Dialog().notification(
                     "Play Suisse",
                     ADDON.getLocalizedString(30117).format(title=title),

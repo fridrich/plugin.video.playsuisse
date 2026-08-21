@@ -35,7 +35,10 @@ class PlaySuissePlayer:
         # 1. Fetch user credentials and id_token (with busy dialog)
         xbmc.executebuiltin("ActivateWindow(busydialognocancel)")
         try:
-            id_token = self.auth.get_token()
+            # This is the OAuth2 access_token (falls back to id_token only
+            # for legacy session.json files), used as the Authorization:
+            # Bearer credential for every resource API call below.
+            auth_token = self.auth.get_token()
 
             # 2. Try to fetch playback session containing signed HLS URL
             # and register play on server
@@ -44,7 +47,7 @@ class PlaySuissePlayer:
             playback_error = None
             try:
                 session_data, playback_error = self.api.get_playback_session(
-                    asset_id, token=id_token
+                    asset_id, token=auth_token
                 )
                 playback_url = session_data.get("playbackUrl")
                 if playback_url:
@@ -59,7 +62,9 @@ class PlaySuissePlayer:
 
             # 3. Fetch asset details containing metadata (and media streams
             # as fallback)
-            asset_data = self.api.get_asset(asset_id, token=id_token)
+            asset_data, asset_error = self.api.get_asset(
+                asset_id, token=auth_token
+            )
         except Exception as e:
             xbmc.executebuiltin("Dialog.Close(busydialognocancel)")
             err_str = str(e)
@@ -101,7 +106,11 @@ class PlaySuissePlayer:
             # Show the server's own reason (e.g. a device/session limit)
             # when we have one, instead of always falling back to the
             # generic "failed to play" message.
-            message = playback_error or self.addon.getLocalizedString(30100)
+            message = (
+                playback_error
+                or asset_error
+                or self.addon.getLocalizedString(30100)
+            )
             xbmcgui.Dialog().notification(
                 self.addon.getAddonInfo('name'),
                 message,
@@ -114,11 +123,13 @@ class PlaySuissePlayer:
         if is_signed_url:
             authorized_url = hls_url
         else:
-            # Append id_token query parameter to authorize playback
+            # Append id_token query parameter to authorize playback (the
+            # CDN's own signing endpoint expects this literal parameter
+            # name regardless of which token type is passed as its value)
             authorized_url = (
                 hls_url
                 + ("&" if "?" in hls_url else "?")
-                + f"id_token={id_token}"
+                + f"id_token={auth_token}"
             )
 
         # 6. Configure inputstream.adaptive and setResolvedUrl

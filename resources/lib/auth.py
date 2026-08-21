@@ -141,6 +141,16 @@ class PlaySuisseAuth:
             self.addon.setSetting("password", "")
             xbmc.executebuiltin("Dialog.Close(busydialognocancel)")
 
+    def _cached_bearer_token(self, session_data):
+        """Returns the token that should be used as an Authorization: Bearer
+        credential for the resource APIs. access_token is the correct OAuth2
+        credential for this (typ "at+jwt"); id_token is only a fallback for
+        session.json files predating access_token being persisted.
+        """
+        return session_data.get("access_token") or session_data.get(
+            "id_token"
+        )
+
     def get_token(self):
         """Returns a cached valid token, refreshes if expired, or performs
         login.
@@ -150,18 +160,26 @@ class PlaySuisseAuth:
             try:
                 with open(self.session_file, "r") as f:
                     session_data = json.load(f)
-                token = session_data.get("id_token")
+                token = self._cached_bearer_token(session_data)
                 refresh_token = session_data.get("refresh_token")
+                expires_at = session_data.get("expires_at")
 
-                # Check if cached id_token is less than 50 minutes old
-                # (tokens last 1hr)
-                if time.time() - session_data.get("timestamp", 0) < 3000:
+                if expires_at is not None:
+                    is_fresh = time.time() < expires_at - 60
+                else:
+                    # Legacy session file predating expires_at: fall back to
+                    # the original heuristic (tokens last ~1hr).
+                    is_fresh = (
+                        time.time() - session_data.get("timestamp", 0) < 3000
+                    )
+
+                if is_fresh:
                     return token
 
                 # Token is expired, try to use refresh token
                 if refresh_token:
                     try:
-                        return self._refresh_token(refresh_token)
+                        return self._refresh_token(session_data)
                     except Exception as e:
                         xbmc.log(
                             f"PlaySuisseAuth: Token refresh failed: {e}",
@@ -177,12 +195,12 @@ class PlaySuisseAuth:
         if not self.prompt_credentials_and_login():
             raise Exception("CREDENTIALS_MISSING")
 
-        # Read and return the freshly acquired id_token from session.json
+        # Read and return the freshly acquired token from session.json
         if os.path.exists(self.session_file):
             try:
                 with open(self.session_file, "r") as f:
                     session_data = json.load(f)
-                return session_data.get("id_token")
+                return self._cached_bearer_token(session_data)
             except Exception:
                 pass
 
@@ -206,8 +224,16 @@ class PlaySuisseAuth:
                 xbmc.LOGERROR,
             )
 
-    def _refresh_token(self, refresh_token):
-        """Trades a cached refresh token for a fresh id_token."""
+    def _refresh_token(self, session_data):
+        """Trades a cached refresh token for a fresh token set.
+
+        cidaas rotates the refresh_token on every use, invalidating the
+        previous one, so the result must always be persisted -- reusing an
+        old refresh_token after a successful refresh will fail.
+        """
+        refresh_token = session_data.get("refresh_token")
+        client_id = session_data.get("client_id") or self.CLIENT_ID
+
         if curl_requests:
             session = curl_requests.Session(impersonate="chrome120")
         else:
@@ -225,34 +251,55 @@ class PlaySuisseAuth:
             )
         )
 
-        token_url = f"{self.LOGIN_BASE}/proxy/token"
-        params = {
-            'client_id': self.CLIENT_ID,
+        # Hit the real token endpoint directly rather than the /proxy/token
+        # alias, which 301-redirects here (and a redirected POST would lose
+        # its body).
+        token_url = f"{self.LOGIN_BASE}/token-srv/token"
+        data = {
+            'client_id': client_id,
             'refresh_token': refresh_token,
             'grant_type': 'refresh_token',
         }
 
-        res = session.post(token_url, params=params, timeout=15)
+        res = session.post(token_url, data=data, timeout=15)
         if not res.ok:
             raise Exception("REFRESH_FAILED")
 
         res_json = res.json()
         id_token = res_json.get("id_token")
-        new_refresh_token = res_json.get("refresh_token") or refresh_token
+        access_token = res_json.get("access_token")
+        new_refresh_token = res_json.get("refresh_token")
+        expires_in = res_json.get("expires_in")
 
-        if not id_token:
+        if not id_token or not access_token:
             raise Exception("REFRESH_FAILED")
 
+        if not new_refresh_token:
+            xbmc.log(
+                "PlaySuisseAuth: Refresh response did not include a new "
+                "refresh_token; reusing the previous one, which cidaas may "
+                "already have invalidated -- the next refresh could fail.",
+                xbmc.LOGWARNING,
+            )
+            new_refresh_token = refresh_token
+
         # Cache the new session tokens
-        self._write_session_cache(
+        new_session_data = dict(session_data)
+        new_session_data.update(
             {
                 "id_token": id_token,
+                "access_token": access_token,
                 "refresh_token": new_refresh_token,
+                "client_id": client_id,
+                "expires_at": (
+                    time.time() + expires_in if expires_in else None
+                ),
                 "timestamp": time.time(),
             }
         )
+        self._write_session_cache(new_session_data)
 
-        return id_token
+        return access_token
 
     def _login_with_credentials(self, email, password):
         """Executes the full multi-step OAuth2 PKCE login handshake in pure
@@ -430,17 +477,24 @@ class PlaySuisseAuth:
         res = session.post(token_url, params=params, timeout=15)
         res_json = res.json()
         id_token = res_json.get('id_token')
+        access_token = res_json.get('access_token')
         refresh_token = res_json.get('refresh_token')
-        if not id_token:
+        expires_in = res_json.get('expires_in')
+        if not id_token or not access_token:
             raise Exception("TOKEN_TRADE_FAILED")
 
         # Cache the session to disk
         self._write_session_cache(
             {
                 "id_token": id_token,
+                "access_token": access_token,
                 "refresh_token": refresh_token,
+                "client_id": self.CLIENT_ID,
+                "expires_at": (
+                    time.time() + expires_in if expires_in else None
+                ),
                 "timestamp": time.time(),
             }
         )
 
-        return id_token, refresh_token
+        return access_token, refresh_token

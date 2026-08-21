@@ -11,7 +11,6 @@ import base64
 import hashlib
 import json
 import os
-import ssl
 import sys
 import time
 import traceback
@@ -397,6 +396,10 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                 with open(session_file, "r") as f:
                     session_data = json.load(f)
                 id_token = session_data.get("id_token")
+                # Authorization header uses access_token, the correct OAuth2
+                # bearer credential for resource APIs; id_token is only
+                # decoded locally here for its "sub" (account id) claim.
+                bearer_token = session_data.get("access_token") or id_token
                 if id_token:
                     clean_token = clean_str(id_token)
                     parts = clean_token.split(".")
@@ -454,7 +457,9 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                             },
                         ]
                         headers = {
-                            "Authorization": "Bearer " + clean_token,
+                            "Authorization": (
+                                "Bearer " + clean_str(bearer_token)
+                            ),
                             "Content-Type": "application/json",
                             "User-Agent": (
                                 "Mozilla/5.0 (X11; Linux x86_64) "
@@ -471,12 +476,9 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                             headers=headers,
                             method="POST",
                         )
-                        ctx = ssl.create_default_context()
-                        ctx.check_hostname = False
-                        ctx.verify_mode = ssl.CERT_NONE
 
                         with urllib.request.urlopen(
-                            req, context=ctx, timeout=10
+                            req, timeout=10
                         ) as response:
                             res_data = json.loads(
                                 response.read().decode("utf-8")
@@ -686,13 +688,7 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                 method="POST",
             )
 
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-
-            with urllib.request.urlopen(
-                req, context=ctx, timeout=10
-            ) as response:
+            with urllib.request.urlopen(req, timeout=10) as response:
                 status_code = response.getcode()
                 response_text = response.read().decode(
                     "utf-8", errors="ignore"

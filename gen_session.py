@@ -412,7 +412,9 @@ characters):
     res = session.post(token_url, params=params, timeout=15)
     res_json = res.json()
     id_token = res_json.get('id_token')
+    access_token = res_json.get('access_token')
     refresh_token = res_json.get('refresh_token')
+    expires_in = res_json.get('expires_in')
     if not id_token:
         error("Step 5 failed (TOKEN_TRADE_FAILED).")
 
@@ -476,7 +478,10 @@ characters):
     # Output clean JSON to stdout for piping
     output_data = {
         "id_token": id_token,
+        "access_token": access_token,
         "refresh_token": refresh_token,
+        "client_id": CLIENT_ID,
+        "expires_at": time.time() + expires_in if expires_in else None,
         "timestamp": time.time(),
     }
     if profile_id:

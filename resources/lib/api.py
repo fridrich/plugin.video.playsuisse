@@ -94,6 +94,9 @@ class PlaySuisseAPI:
                 f"{res.status_code}",
                 xbmc.LOGERROR,
             )
+            if res.status_code in (401, 403):
+                return {}, "AUTH_EXPIRED"
+            return {}, f"HTTP_{res.status_code}"
         except Exception as e:
             xbmc.log(f"PlaySuisseAPI: Connection error: {e}", xbmc.LOGERROR)
         return {}, None
@@ -122,7 +125,12 @@ class PlaySuisseAPI:
         return sorted(results, key=lambda x: x["title"])
 
     def get_page(self, page_id, token=None):
-        """Retrieves a specific page's modules and their asset items."""
+        """Retrieves a specific page's modules and their asset items.
+
+        Returns (page_dict, error_message); error_message is None on
+        success, "AUTH_EXPIRED" if the token was rejected, or another
+        error string otherwise.
+        """
         q = """
         query GetPage($pageId: ID!) {
             pageV2(id: $pageId) {
@@ -199,7 +207,7 @@ class PlaySuisseAPI:
             }
         }
         """
-        data, _ = self._query(q, {"pageId": page_id}, token=token)
+        data, error = self._query(q, {"pageId": page_id}, token=token)
         page = data.get("pageV2") or {}
         modules_list = []
         for mod in page.get("modules", []):
@@ -218,7 +226,7 @@ class PlaySuisseAPI:
             "title": page.get("title"),
             "description": page.get("description"),
             "modules": modules_list,
-        }
+        }, error
 
     def search(self, search_query):
         """Searches the Play Suisse catalog for the given term."""
@@ -322,6 +330,10 @@ class PlaySuisseAPI:
     def get_asset(self, asset_id, token=None):
         """Retrieves detailed asset metadata and its episodes if it's a
         series.
+
+        Returns (asset_dict, error_message); error_message is None on
+        success, "AUTH_EXPIRED" if the token was rejected, or another
+        error string otherwise.
         """
         q = """
         query GetAsset($assetId: ID!) {
@@ -397,8 +409,8 @@ class PlaySuisseAPI:
             }
         }
         """
-        data, _ = self._query(q, {"assetId": asset_id}, token=token)
-        return data.get("assetV2") or {}
+        data, error = self._query(q, {"assetId": asset_id}, token=token)
+        return data.get("assetV2") or {}, error
 
     def get_playback_session(self, asset_id, token=None):
         """Creates a playback session and retrieves the signed stream URL.

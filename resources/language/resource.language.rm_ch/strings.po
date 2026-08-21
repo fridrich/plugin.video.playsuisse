@@ -178,3 +178,7 @@ msgstr "Allontanà '{title}' da Guardar enavant"
 msgctxt "#30118"
 msgid "Failed to remove from Continue Watching"
 msgstr "Errur cun allontanar da Guardar enavant"
+
+msgctxt "#30119"
+msgid "Your Play+Suisse session has expired. Please log in again."
+msgstr "Voss access Play+Suisse è scadì. S'annunziai da nov, per plaschair."
