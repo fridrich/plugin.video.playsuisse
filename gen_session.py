@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (C) 2026 Fridrich Strba
 #
 # Standalone CLI to generate Play Suisse session tokens on a PC.

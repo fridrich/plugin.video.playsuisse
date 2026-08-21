@@ -45,7 +45,7 @@ If typing a complex password using a standard television remote control is too c
 
 1. On any PC with **Python 3** and the `requests` library installed (`pip install requests`), run the included `gen_session.py` script from this repository:
    ```
-   ./gen_session.py --username="your_email@example.com" > session.json
+   python3 gen_session.py --username="your_email@example.com" > session.json
    ```
    You will be prompted for your password securely (masked input, never echoed or stored in your shell history). See the script's `--help` for alternative password input methods (password file or environment variable) if you prefer to avoid the interactive prompt.
 2. Copy the resulting **`session.json`** file into your Kodi device's profile userdata directory:
@@ -65,7 +65,7 @@ To install `curl_cffi` on OSMC (ARMv7l) running Python 3.9:
 pip3 install "curl_cffi<=0.13.0" --extra-index-url https://bjia56.github.io/armv7l-wheels/
 ```
 
-Once `curl_cffi` is installed, direct login in Kodi (Method A) and executing `./gen_session.py` directly on the Raspberry Pi will work seamlessly.
+Once `curl_cffi` is installed, direct login in Kodi (Method A) and executing `python3 gen_session.py` directly on the Raspberry Pi will work seamlessly.
 
 ---
 
