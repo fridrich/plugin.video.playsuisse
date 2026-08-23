@@ -21,6 +21,11 @@ import xbmc
 import xbmcaddon
 import xbmcvfs
 
+# monitor.py and auth.py are colocated in resources/lib -- this just makes
+# that explicit rather than relying on Kodi's script-invocation sys.path.
+sys.path.insert(0, os.path.dirname(__file__))
+from auth import PlaySuisseAuth
+
 ADDON = xbmcaddon.Addon("plugin.video.playsuisse")
 
 
@@ -419,109 +424,39 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
                                 "profile_id": clean_str(cached_profile_id),
                             }
 
-                        url = (
-                            "https://www.playsuisse.ch/api/graphql"
-                            "?complex_subs=true&stipo_env=production2"
-                            "&discontinuity=true"
-                        )
-                        query_payload = [
-                            {
-                                "operationName": "AppConfig",
-                                "variables": {},
-                                "extensions": {
-                                    "persistedQuery": {
-                                        "version": 1,
-                                        "sha256Hash": (
-                                            "3cdb8a136dccdaee568e872c55"
-                                            "c2d30578a919a3f02656b335be"
-                                            "c80a88129d89"
-                                        ),
-                                    }
-                                },
-                            },
-                            {
-                                "operationName": (
-                                    "UserProfileWithPreferencesAndUserInfo"
-                                ),
-                                "variables": {},
-                                "extensions": {
-                                    "persistedQuery": {
-                                        "version": 1,
-                                        "sha256Hash": (
-                                            "93b24b6d887b532304d2fbc6a"
-                                            "422b52092d853edf17cf33488"
-                                            "ccf0218f8c6e3c"
-                                        ),
-                                    }
-                                },
-                            },
-                        ]
-                        headers = {
-                            "Authorization": (
-                                "Bearer " + clean_str(bearer_token)
-                            ),
-                            "Content-Type": "application/json",
-                            "User-Agent": (
-                                "Mozilla/5.0 (X11; Linux x86_64) "
-                                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                                "Chrome/120.0.0.0 Safari/537.36"
-                            ),
-                            "x-playsuisse-app": "id=web&version=1.1.27",
-                            "x-playsuisse-locale": self._get_ui_locale(),
-                        }
-
-                        req = urllib.request.Request(
-                            url,
-                            data=json.dumps(query_payload).encode("utf-8"),
-                            headers=headers,
-                            method="POST",
-                        )
-
-                        with urllib.request.urlopen(
-                            req, timeout=10
-                        ) as response:
-                            res_data = json.loads(
-                                response.read().decode("utf-8")
+                        # Not cached yet (e.g. a session.json predating
+                        # profile_id caching) -- fetch it live via the same
+                        # call auth.py makes right after login, and cache
+                        # it back so this only happens once per session.
+                        if bearer_token:
+                            profile_id = PlaySuisseAuth.fetch_profile_id(
+                                bearer_token
                             )
-                            if (
-                                res_data
-                                and isinstance(res_data, list)
-                                and len(res_data) > 1
-                            ):
-                                profile_data = (
-                                    res_data[1]
-                                    .get("data", {})
-                                    .get("userProfile", {})
-                                )
-                                profile_id = clean_str(
-                                    profile_data.get("profileId")
-                                )
-
-                                if profile_id:
-                                    session_data["profile_id"] = profile_id
-                                    try:
-                                        # Atomic write: avoids a truncated
-                                        # session.json on a crash or power
-                                        # loss.
-                                        tmp_path = f"{session_file}.tmp"
-                                        with open(tmp_path, "w") as f_out:
-                                            json.dump(session_data, f_out)
-                                        os.replace(tmp_path, session_file)
-                                    except Exception as write_err:
-                                        xbmc.log(
-                                            "PlaySuissePlaybackMonitor: "
-                                            "Failed to cache profile_id: "
-                                            f"{write_err}",
-                                            xbmc.LOGWARNING,
-                                        )
-
+                            if profile_id:
+                                session_data["profile_id"] = profile_id
+                                try:
+                                    tmp_path = f"{session_file}.tmp"
+                                    with open(tmp_path, "w") as f_out:
+                                        json.dump(session_data, f_out)
+                                    os.replace(tmp_path, session_file)
+                                except Exception as write_err:
+                                    xbmc.log(
+                                        "PlaySuissePlaybackMonitor: Failed "
+                                        f"to cache profile_id: {write_err}",
+                                        xbmc.LOGWARNING,
+                                    )
                                 return {
                                     "account_id": user_id,
-                                    "profile_id": profile_id,
+                                    "profile_id": clean_str(profile_id),
                                 }
+
+                        return {
+                            "account_id": user_id,
+                            "profile_id": user_id,
+                        }
         except Exception as e:
             xbmc.log(
-                "PlaySuissePlaybackMonitor: Failed to fetch active "
+                "PlaySuissePlaybackMonitor: Failed to extract active "
                 f"profile ID: {e}",
                 xbmc.LOGERROR,
             )

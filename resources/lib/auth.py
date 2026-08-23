@@ -16,13 +16,34 @@ import uuid
 from urllib.parse import parse_qs, urlparse
 
 import requests
-import xbmc
-import xbmcvfs
+
+try:
+    import xbmc
+    import xbmcaddon
+    import xbmcgui
+    import xbmcvfs
+    KODI_AVAILABLE = True
+except ImportError:
+    KODI_AVAILABLE = False
 
 try:
     from curl_cffi import requests as curl_requests
 except ImportError:
     curl_requests = None
+
+
+def log_msg(msg):
+    """Default logger -- gen_session.py overrides this (auth.log_msg = ...)
+    to write to stderr instead, keeping stdout clean for piping session
+    JSON. Must stay a plain stderr/xbmc.log write here too, never stdout,
+    for the same reason if this is ever called before that override runs.
+    """
+    if KODI_AVAILABLE:
+        xbmc.log(f"PlaySuisseAuth: {msg}", xbmc.LOGDEBUG)
+    else:
+        import sys
+        sys.stderr.write(f"[*] PlaySuisseAuth: {msg}\n")
+        sys.stderr.flush()
 
 
 class PlaySuisseAuth:
@@ -82,21 +103,27 @@ class PlaySuisseAuth:
             headers["Upgrade-Insecure-Requests"] = "1"
         return headers
 
-    def __init__(self, addon):
+    def __init__(self, addon=None, session_file=None):
         self.addon = addon
+        if session_file:
+            self.session_file = session_file
+        else:
+            if KODI_AVAILABLE and addon:
+                profile_dir = xbmcvfs.translatePath(self.addon.getAddonInfo("profile"))
+            else:
+                profile_dir = "."
 
-        # Resolve the official profile directory for cross-device compatibility
-        profile_dir = xbmcvfs.translatePath(self.addon.getAddonInfo("profile"))
-        if not os.path.exists(profile_dir):
-            try:
-                os.makedirs(profile_dir)
-            except Exception:
-                pass
+            if not os.path.exists(profile_dir):
+                try:
+                    os.makedirs(profile_dir)
+                except Exception:
+                    pass
 
-        self.session_file = os.path.join(profile_dir, "session.json")
+            self.session_file = os.path.join(profile_dir, "session.json")
 
         # Log the expected path for easy debugging on any new device
-        xbmc.log(f"PlaySuisseAuth: Profile dir: {profile_dir}", xbmc.LOGINFO)
+        if KODI_AVAILABLE:
+            xbmc.log(f"PlaySuisseAuth: Profile dir/session file: {self.session_file}", xbmc.LOGINFO)
 
     def prompt_credentials_and_login(self):
         """Prompts the user interactively and authenticates, caching only
@@ -181,15 +208,17 @@ class PlaySuisseAuth:
                     try:
                         return self._refresh_token(session_data)
                     except Exception as e:
-                        xbmc.log(
-                            f"PlaySuisseAuth: Token refresh failed: {e}",
-                            xbmc.LOGDEBUG,
-                        )
+                        if KODI_AVAILABLE:
+                            xbmc.log(
+                                f"PlaySuisseAuth: Token refresh failed: {e}",
+                                xbmc.LOGDEBUG,
+                            )
             except Exception as e:
-                xbmc.log(
-                    f"PlaySuisseAuth: Error reading session cache: {e}",
-                    xbmc.LOGDEBUG,
-                )
+                if KODI_AVAILABLE:
+                    xbmc.log(
+                        f"PlaySuisseAuth: Error reading session cache: {e}",
+                        xbmc.LOGDEBUG,
+                    )
 
         # 2. No session, or refresh token failed. Prompt the user interactively
         if not self.prompt_credentials_and_login():
@@ -211,7 +240,7 @@ class PlaySuisseAuth:
         a crash or power loss.
         """
         profile_dir = os.path.dirname(self.session_file)
-        if not os.path.exists(profile_dir):
+        if profile_dir and not os.path.exists(profile_dir):
             os.makedirs(profile_dir)
         tmp_path = f"{self.session_file}.tmp"
         try:
@@ -219,10 +248,11 @@ class PlaySuisseAuth:
                 json.dump(data, f)
             os.replace(tmp_path, self.session_file)
         except Exception as e:
-            xbmc.log(
-                f"PlaySuisseAuth: Failed to write session cache: {e}",
-                xbmc.LOGERROR,
-            )
+            if KODI_AVAILABLE:
+                xbmc.log(
+                    f"PlaySuisseAuth: Failed to write session cache: {e}",
+                    xbmc.LOGERROR,
+                )
 
     def _refresh_token(self, session_data):
         """Trades a cached refresh token for a fresh token set.
@@ -275,12 +305,13 @@ class PlaySuisseAuth:
             raise Exception("REFRESH_FAILED")
 
         if not new_refresh_token:
-            xbmc.log(
-                "PlaySuisseAuth: Refresh response did not include a new "
-                "refresh_token; reusing the previous one, which cidaas may "
-                "already have invalidated -- the next refresh could fail.",
-                xbmc.LOGWARNING,
-            )
+            if KODI_AVAILABLE:
+                xbmc.log(
+                    "PlaySuisseAuth: Refresh response did not include a new "
+                    "refresh_token; reusing the previous one, which cidaas may "
+                    "already have invalidated -- the next refresh could fail.",
+                    xbmc.LOGWARNING,
+                )
             new_refresh_token = refresh_token
 
         # Cache the new session tokens
@@ -300,6 +331,78 @@ class PlaySuisseAuth:
         self._write_session_cache(new_session_data)
 
         return access_token
+
+    @classmethod
+    def fetch_profile_id(cls, access_token):
+        """Fetches the active Play Suisse profile_id via the batched
+        AppConfig/UserProfileWithPreferencesAndUserInfo persisted query.
+        Used both right after login and as monitor.py's fallback for
+        session.json files that predate profile_id caching. Returns None
+        on any failure.
+        """
+        try:
+            graphql_url = (
+                "https://www.playsuisse.ch/api/graphql"
+                "?complex_subs=true&stipo_env=production2&discontinuity=true"
+            )
+            query_payload = [
+                {
+                    "operationName": "AppConfig",
+                    "variables": {},
+                    "extensions": {
+                        "persistedQuery": {
+                            "version": 1,
+                            "sha256Hash": (
+                                "3cdb8a136dccdaee568e872c55c2d30"
+                                "578a919a3f02656b335bec80a88129d89"
+                            ),
+                        }
+                    },
+                },
+                {
+                    "operationName": "UserProfileWithPreferencesAndUserInfo",
+                    "variables": {},
+                    "extensions": {
+                        "persistedQuery": {
+                            "version": 1,
+                            "sha256Hash": (
+                                "93b24b6d887b532304d2fbc6a422b52"
+                                "092d853edf17cf33488ccf0218f8c6e3c"
+                            ),
+                        }
+                    },
+                },
+            ]
+            headers = {
+                # access_token is the correct OAuth2 bearer credential
+                # here, not id_token -- this previously used id_token and
+                # would silently 401.
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+                "x-playsuisse-app": "id=web&version=1.1.27",
+                "x-playsuisse-locale": "fr",
+                "User-Agent": cls.USER_AGENT,
+            }
+            if curl_requests:
+                session = curl_requests.Session(impersonate="chrome120")
+            else:
+                session = requests.Session()
+            res = session.post(
+                graphql_url, json=query_payload, headers=headers, timeout=15
+            )
+            if res.status_code == 200:
+                data = res.json()
+                if data and isinstance(data, list) and len(data) > 1:
+                    profile_data = (
+                        data[1].get("data", {}).get("userProfile", {})
+                    )
+                    profile_id = profile_data.get("profileId")
+                    if profile_id:
+                        log_msg(f"Active profile ID fetched: {profile_id}")
+                    return profile_id
+        except Exception as e:
+            log_msg(f"Warning: Could not fetch profile ID: {e}")
+        return None
 
     def _login_with_credentials(self, email, password):
         """Executes the full multi-step OAuth2 PKCE login handshake in pure
@@ -321,6 +424,7 @@ class PlaySuisseAuth:
             session = requests.Session()
 
         # Step 1: Initial authz request to register login session
+        log_msg("Step 1: Contacting authentication server (GET)...")
         authz_url = f"{self.LOGIN_BASE}/authz-srv/authz"
         params = {
             'client_id': self.CLIENT_ID,
@@ -355,10 +459,12 @@ class PlaySuisseAuth:
                 f"Status: {res.status_code}, URL: {res.url}, "
                 f"Body: {res.text[:500]}"
             )
-            xbmc.log(msg, xbmc.LOGERROR)
+            if KODI_AVAILABLE:
+                xbmc.log(msg, xbmc.LOGERROR)
             raise Exception("AUTHZ_FAILED")
 
         # Step 2: Submit username (initiate)
+        log_msg("Step 2: Submitting username...")
         init_url = (
             f"{self.LOGIN_BASE}/verification-srv/v2"
             "/authenticate/initiate/password"
@@ -391,6 +497,7 @@ class PlaySuisseAuth:
             raise Exception("USERNAME_INVALID")
 
         # Step 3: Submit password (authenticate)
+        log_msg("Step 3: Submitting password...")
         auth_url = (
             f"{self.LOGIN_BASE}/verification-srv/v2"
             "/authenticate/authenticate/password"
@@ -420,6 +527,7 @@ class PlaySuisseAuth:
             raise Exception("PASSWORD_INVALID")
 
         # Step 4: Finalize verification and get auth code redirect
+        log_msg("Step 4: Finalizing verification...")
         verify_url = f"{self.LOGIN_BASE}/login-srv/verification/login"
         payload = {
             'requestId': request_id,
@@ -455,6 +563,7 @@ class PlaySuisseAuth:
             raise Exception("VERIFICATION_FAILED")
 
         # Step 5: Trade authorization code for id_token
+        log_msg("Step 5: Exchanging authorization code for tokens...")
         token_url = f"{self.LOGIN_BASE}/proxy/token"
         params = {
             'client_id': self.CLIENT_ID,
@@ -483,18 +592,22 @@ class PlaySuisseAuth:
         if not id_token or not access_token:
             raise Exception("TOKEN_TRADE_FAILED")
 
+        # Step 6: Fetch active profile ID dynamically
+        log_msg("Step 6: Fetching active profile ID...")
+        profile_id = self.fetch_profile_id(access_token)
+
+        session_cache = {
+            "id_token": id_token,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "client_id": self.CLIENT_ID,
+            "expires_at": (time.time() + expires_in if expires_in else None),
+            "timestamp": time.time(),
+        }
+        if profile_id:
+            session_cache["profile_id"] = profile_id
+
         # Cache the session to disk
-        self._write_session_cache(
-            {
-                "id_token": id_token,
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "client_id": self.CLIENT_ID,
-                "expires_at": (
-                    time.time() + expires_in if expires_in else None
-                ),
-                "timestamp": time.time(),
-            }
-        )
+        self._write_session_cache(session_cache)
 
         return access_token, refresh_token
