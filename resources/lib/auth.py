@@ -54,13 +54,14 @@ class PlaySuisseAuth:
     CLIENT_ID = "1e33f1bf-8bf3-45e4-bbd9-c9ad934b5fca"
     LOGIN_BASE = "https://account.srgssr.ch"
 
-    USER_AGENT = (
+    # Fallback UA, used only when no curl_cffi target is available at all
+    # (plain requests.Session() has no impersonation of its own).
+    FALLBACK_USER_AGENT = (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
-    SEC_CH_UA = (
-        '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"'
-    )
+
+    IMPERSONATE_TARGETS = ("chrome120", "chrome124", "edge101", "safari180")
 
     @classmethod
     def _browser_headers(
@@ -74,15 +75,15 @@ class PlaySuisseAuth:
         content_type=None,
         navigation=False,
     ):
-        """Builds a Chrome 120-like header set for one PKCE flow step (to
-        match the TLS impersonation).
+        """Builds the per-step contextual headers (Accept/Referer/Origin/
+        Sec-Fetch-*) for one PKCE flow step. Deliberately excludes
+        User-Agent/Sec-Ch-Ua/Sec-Ch-Ua-Platform -- curl_cffi's own
+        impersonate= already sets those correctly matched to whichever
+        target actually succeeded; hardcoding them here would send a
+        Chrome-120 identity over a TLS handshake impersonating something
+        else entirely if the fallback loop picked a different target.
         """
-        headers = {
-            "User-Agent": cls.USER_AGENT,
-            "Accept": accept,
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
-        }
+        headers = {"Accept": accept}
         if content_type:
             headers["Content-Type"] = content_type
         if origin:
@@ -90,9 +91,6 @@ class PlaySuisseAuth:
         headers["Referer"] = referer
         headers.update(
             {
-                "Sec-Ch-Ua": cls.SEC_CH_UA,
-                "Sec-Ch-Ua-Mobile": "?0",
-                "Sec-Ch-Ua-Platform": '"Linux"',
                 "Sec-Fetch-Dest": dest,
                 "Sec-Fetch-Mode": mode,
                 "Sec-Fetch-Site": site,
@@ -102,6 +100,30 @@ class PlaySuisseAuth:
             headers["Sec-Fetch-User"] = "?1"
             headers["Upgrade-Insecure-Requests"] = "1"
         return headers
+
+    @classmethod
+    def _request_with_fallback(cls, method, url, headers, **kwargs):
+        """Tries each impersonate target in turn against one real request
+        (ImpersonateError only surfaces on first real use of a target, never
+        at Session() construction), falling back to plain requests if none
+        work.
+        """
+        if curl_requests:
+            for target in cls.IMPERSONATE_TARGETS:
+                log_msg(f"Trying to impersonate {target}")
+                try:
+                    session = curl_requests.Session(impersonate=target)
+                    session.headers.clear()
+                    session.headers.update(headers)
+                    return session, getattr(session, method)(url, **kwargs)
+                except Exception as e:
+                    log_msg(f"{target} failed: {e}")
+                    continue
+        session = requests.Session()
+        session.headers.clear()
+        session.headers.update(headers)
+        session.headers["User-Agent"] = cls.FALLBACK_USER_AGENT
+        return session, getattr(session, method)(url, **kwargs)
 
     def __init__(self, addon=None, session_file=None):
         self.addon = addon
@@ -264,21 +286,13 @@ class PlaySuisseAuth:
         refresh_token = session_data.get("refresh_token")
         client_id = session_data.get("client_id") or self.CLIENT_ID
 
-        if curl_requests:
-            session = curl_requests.Session(impersonate="chrome120")
-        else:
-            session = requests.Session()
-
-        session.headers.clear()
-        session.headers.update(
-            self._browser_headers(
-                accept="application/json, text/plain, */*",
-                referer="https://www.playsuisse.ch/",
-                origin="https://www.playsuisse.ch",
-                dest="empty",
-                mode="cors",
-                site="cross-site",
-            )
+        headers = self._browser_headers(
+            accept="application/json, text/plain, */*",
+            referer="https://www.playsuisse.ch/",
+            origin="https://www.playsuisse.ch",
+            dest="empty",
+            mode="cors",
+            site="cross-site",
         )
 
         # Hit the real token endpoint directly rather than the /proxy/token
@@ -291,7 +305,9 @@ class PlaySuisseAuth:
             'grant_type': 'refresh_token',
         }
 
-        res = session.post(token_url, data=data, timeout=15)
+        _, res = self._request_with_fallback(
+            "post", token_url, headers, data=data, timeout=15
+        )
         if not res.ok:
             raise Exception("REFRESH_FAILED")
 
@@ -381,14 +397,9 @@ class PlaySuisseAuth:
                 "Content-Type": "application/json",
                 "x-playsuisse-app": "id=web&version=1.1.27",
                 "x-playsuisse-locale": "fr",
-                "User-Agent": cls.USER_AGENT,
             }
-            if curl_requests:
-                session = curl_requests.Session(impersonate="chrome120")
-            else:
-                session = requests.Session()
-            res = session.post(
-                graphql_url, json=query_payload, headers=headers, timeout=15
+            _, res = cls._request_with_fallback(
+                "post", graphql_url, headers, json=query_payload, timeout=15
             )
             if res.status_code == 200:
                 data = res.json()
@@ -418,12 +429,10 @@ class PlaySuisseAuth:
             .rstrip('=')
         )
 
-        if curl_requests:
-            session = curl_requests.Session(impersonate="chrome120")
-        else:
-            session = requests.Session()
-
-        # Step 1: Initial authz request to register login session
+        # Step 1: Initial authz request to register login session.
+        # The impersonation target-fallback loop wraps this specific request
+        # (not just Session construction) -- ImpersonateError only surfaces
+        # on first real use of a target, never at Session() construction.
         log_msg("Step 1: Contacting authentication server (GET)...")
         authz_url = f"{self.LOGIN_BASE}/authz-srv/authz"
         params = {
@@ -435,22 +444,37 @@ class PlaySuisseAuth:
             'code_challenge_method': 'S256',
             'view_type': 'login',
         }
-        session.headers.clear()
-        session.headers.update(
-            self._browser_headers(
-                accept=(
-                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
-                    "image/avif,image/webp,image/apng,*/*;q=0.8,"
-                    "application/signed-exchange;v=b3;q=0.7"
-                ),
-                referer="https://www.playsuisse.ch/",
-                dest="document",
-                mode="navigate",
-                site="cross-site",
-                navigation=True,
-            )
+        authz_headers = self._browser_headers(
+            accept=(
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8,"
+                "application/signed-exchange;v=b3;q=0.7"
+            ),
+            referer="https://www.playsuisse.ch/",
+            dest="document",
+            mode="navigate",
+            site="cross-site",
+            navigation=True,
         )
-        res = session.get(authz_url, params=params, timeout=15)
+
+        session, res = self._request_with_fallback(
+            "get", authz_url, authz_headers, params=params, timeout=15
+        )
+        # requests.Session() is only ever used as the last-resort fallback
+        # here (curl_cffi's Session is an unrelated class) -- distinguishes
+        # which one apply_headers() below is dealing with.
+        is_fallback = isinstance(session, requests.Session)
+
+        def apply_headers(headers):
+            # Plain requests.Session() has no impersonation of its own, so
+            # its User-Agent must be re-added on every step -- .clear() below
+            # wipes it and _browser_headers() no longer sets one (curl_cffi
+            # sessions get a matching one from their own impersonate= target).
+            session.headers.clear()
+            session.headers.update(headers)
+            if is_fallback:
+                session.headers["User-Agent"] = self.FALLBACK_USER_AGENT
+
         parsed_query = parse_qs(urlparse(res.url).query)
         request_id = parsed_query.get('requestId', [None])[0]
         if not request_id:
@@ -476,8 +500,7 @@ class PlaySuisseAuth:
             'type': 'password',
             'identifier': email,
         }
-        session.headers.clear()
-        session.headers.update(
+        apply_headers(
             self._browser_headers(
                 accept="application/json, text/plain, */*",
                 referer=res.url,
@@ -508,8 +531,7 @@ class PlaySuisseAuth:
             'type': 'password',
             'password': password,
         }
-        session.headers.clear()
-        session.headers.update(
+        apply_headers(
             self._browser_headers(
                 accept="application/json, text/plain, */*",
                 referer=res.url,
@@ -539,8 +561,7 @@ class PlaySuisseAuth:
             'lat': '',
             'lon': '',
         }
-        session.headers.clear()
-        session.headers.update(
+        apply_headers(
             self._browser_headers(
                 accept=(
                     "text/html,application/xhtml+xml,application/xml;q=0.9,"
@@ -572,8 +593,7 @@ class PlaySuisseAuth:
             'code_verifier': code_verifier,
             'grant_type': 'authorization_code',
         }
-        session.headers.clear()
-        session.headers.update(
+        apply_headers(
             self._browser_headers(
                 accept="application/json, text/plain, */*",
                 referer="https://www.playsuisse.ch/",
