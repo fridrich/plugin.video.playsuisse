@@ -190,7 +190,7 @@ def main_menu():
     # 4. Familie (Page ID: family)
     family_item = xbmcgui.ListItem(label=labels["family"])
     family_url = build_url(
-        {"mode": "page", "id": "family", "title": labels["family"]}
+        {"mode": "page", "id": "entertainment", "title": labels["family"]}
     )
     xbmcplugin.addDirectoryItem(
         ADDON_HANDLE, family_url, family_item, isFolder=True
