@@ -267,7 +267,9 @@ def list_page(page_id, page_title):
     if not modules:
         if page_error == "AUTH_EXPIRED":
             notify_session_expired()
-        xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
+            xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
+        else:
+            xbmcplugin.endOfDirectory(ADDON_HANDLE, True)
         return
 
     # If there is only one module, flatten it and list its assets directly
