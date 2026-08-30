@@ -317,8 +317,8 @@ def list_page(page_id, page_title):
                 ):
                     continue
 
-            # The web's main carousel is internally named "Smart Hero V3" etc.
-            if "smart hero" in title_lower:
+            # Each page's main carousel is internally having in its name "Hero".
+            if "hero" in title_lower:
                 lang = get_main_menu_language()
                 labels = MAIN_MENU_LANGUAGES.get(
                     lang, MAIN_MENU_LANGUAGES["en"]
