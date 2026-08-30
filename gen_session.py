@@ -10,7 +10,7 @@ import tempfile
 
 # Insert resources/lib into path to import auth.py
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "resources", "lib"))
-import auth
+import auth  # noqa: E402
 
 
 def log_msg(msg):
@@ -198,7 +198,10 @@ Password Input Methods:
             log_msg("To complete setup, copy this file into your Kodi device's userdata directory:")
             log_msg("  - Linux: ~/.kodi/userdata/addon_data/plugin.video.playsuisse/session.json")
             log_msg("  - CoreELEC/LibreELEC: /storage/.kodi/userdata/addon_data/plugin.video.playsuisse/session.json")
-            log_msg("  - Android: /sdcard/Android/data/org.xbmc.kodi/files/.kodi/userdata/addon_data/plugin.video.playsuisse/session.json")
+            log_msg(
+                "  - Android: /sdcard/Android/data/org.xbmc.kodi/files/.kodi/userdata/addon_data/"
+                "plugin.video.playsuisse/session.json"
+            )
     except Exception as e:
         # Clean up temp file on failure
         if is_stdout and os.path.exists(session_file):

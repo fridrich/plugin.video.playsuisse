@@ -24,7 +24,7 @@ import xbmcvfs
 # monitor.py and auth.py are colocated in resources/lib -- this just makes
 # that explicit rather than relying on Kodi's script-invocation sys.path.
 sys.path.insert(0, os.path.dirname(__file__))
-from auth import PlaySuisseAuth
+from auth import PlaySuisseAuth  # noqa: E402
 
 ADDON = xbmcaddon.Addon("plugin.video.playsuisse")
 

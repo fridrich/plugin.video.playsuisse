@@ -20,8 +20,6 @@ import requests
 
 try:
     import xbmc
-    import xbmcaddon
-    import xbmcgui
     import xbmcvfs
     KODI_AVAILABLE = True
 except ImportError:
