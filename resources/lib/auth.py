@@ -11,6 +11,7 @@ import base64
 import hashlib
 import json
 import os
+import sys
 import time
 import uuid
 from urllib.parse import parse_qs, urlparse
@@ -26,6 +27,9 @@ try:
 except ImportError:
     KODI_AVAILABLE = False
 
+# orjson (curl_cffi's optional dep) segfaults on 2nd+ import in a Kodi
+# sub-interpreter -- force curl_cffi's own fallback to skip it entirely.
+sys.modules.setdefault("orjson", None)
 try:
     from curl_cffi import requests as curl_requests
 except ImportError:
