@@ -436,8 +436,9 @@ def get_my_list_ids():
         page_data, _ = api.get_page("my_list", token=token)
         modules = page_data.get("modules") or []
         for mod in modules:
+            mod_id = mod.get("id")
             title_lower = (mod.get("title") or "").lower()
-            if any(
+            if mod_id == "my_list" or any(
                 term in title_lower
                 for term in (
                     "ma liste",
