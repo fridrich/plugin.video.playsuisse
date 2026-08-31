@@ -140,6 +140,7 @@ class PlaySuisseAPI:
                 modules {
                     __typename
                     ... on ModuleCollection {
+                        id
                         title
                         assets {
                             id
@@ -172,6 +173,7 @@ class PlaySuisseAPI:
                         }
                     }
                     ... on ModuleDynamicCollection {
+                        id
                         title
                         assets {
                             id
@@ -217,6 +219,7 @@ class PlaySuisseAPI:
             modules_list.append(
                 {
                     "typename": mod.get("__typename"),
+                    "id": mod.get("id"),
                     "title": mod.get("title") or page.get("title") or "Videos",
                     "assets": assets,
                 }

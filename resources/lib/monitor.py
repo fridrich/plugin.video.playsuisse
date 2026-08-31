@@ -367,28 +367,6 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
         except Exception:
             return False
 
-    def _get_ui_locale(self):
-        """Gets the locale based on the addon setting, falling back to
-        Kodi's language.
-        """
-        try:
-            lang_setting = ADDON.getSetting("language")
-            if lang_setting and lang_setting != "auto":
-                return lang_setting
-
-            kodi_lang = xbmc.getLanguage(xbmc.ISO_639_1, True)
-            if kodi_lang:
-                kodi_lang = kodi_lang.lower()
-                if "de" in kodi_lang:
-                    return "de"
-                if "it" in kodi_lang:
-                    return "it"
-                if "rm" in kodi_lang:
-                    return "rm"
-        except Exception:
-            pass
-        return "fr"
-
     def _get_user_info(self):
         """Loads session.json, extracts sub (account_id), and caches
         the real profile_id from the GraphQL API.

@@ -109,7 +109,7 @@ MAIN_MENU_LANGUAGES = {
         "music": "Musica",
         "categories": "Temas",
         "mylist": "Mia glista",
-        "continue_watching": "Continuar la lectura",
+        "continue_watching": "Guardar enavant",
         "search": "Tschertgar",
         "highlights": "En evidenza",
     },
@@ -289,12 +289,13 @@ def list_page(page_id, page_title):
     else:
         # List each module as a subfolder
         for i, mod in enumerate(modules):
+            mod_id = mod.get("id")
             title = mod.get("title") or ""
             title_lower = title.lower()
 
-            # Skip 'Continue Watching' and 'My List' modules other pages
+            # Skip 'Continue Watching' and 'My List' modules on other pages
             # to avoid duplication with root menu shortcuts
-            if any(
+            if mod_id == "continue_watching" or any(
                 term in title_lower
                 for term in (
                     "reprendre",
@@ -305,7 +306,7 @@ def list_page(page_id, page_title):
                 )
             ):
                 continue
-            if any(
+            if mod_id == "my_list" or any(
                 term in title_lower
                 for term in (
                     "ma liste",
@@ -713,9 +714,10 @@ def handle_watchlist(list_type):
 
     target_module = None
     for mod in modules:
+        mod_id = mod.get("id")
         title_lower = (mod.get("title") or "").lower()
         if list_type == "watchlist":
-            if any(
+            if mod_id == "my_list" or any(
                 term in title_lower
                 for term in (
                     "ma liste",
@@ -729,7 +731,7 @@ def handle_watchlist(list_type):
                 target_module = mod
                 break
         elif list_type == "resume":
-            if any(
+            if mod_id == "continue_watching" or any(
                 term in title_lower
                 for term in (
                     "reprendre",
