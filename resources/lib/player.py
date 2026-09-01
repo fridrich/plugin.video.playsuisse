@@ -28,7 +28,7 @@ class PlaySuissePlayer:
         self.auth = PlaySuisseAuth(addon)
         self.api = PlaySuisseAPI()
 
-    def resolve_and_play(self, handle, asset_id, title):
+    def resolve_and_play(self, handle, asset_id, title, series_id=None):
         """Authenticates natively in Python and resolves the authorized HLS
         (.m3u8) stream.
         """
@@ -146,6 +146,45 @@ class PlaySuissePlayer:
         play_item.setProperty("inputstream", ia)
         play_item.setProperty(f"{ia}.manifest_type", "hls")
 
+        # Set rich metadata so that playback triggered directly via PlayMedia
+        # (e.g. from service.upnext) has full OSD information.
+        if asset_data:
+            info = {
+                "title": title,
+                "plot": asset_data.get("description") or "",
+                "tvshowtitle": asset_data.get("seriesName") or "",
+            }
+            ep_num = asset_data.get("episodeNumber")
+            season_num = asset_data.get("seasonNumber")
+            year = asset_data.get("year")
+            duration = asset_data.get("duration")
+
+            if ep_num is not None:
+                info["episode"] = ep_num
+            if season_num is not None:
+                info["season"] = season_num
+            if year:
+                try:
+                    info["year"] = int(str(year)[:4])
+                except ValueError:
+                    pass
+            if duration:
+                info["duration"] = int(duration)
+
+            play_item.setInfo("video", info)
+
+            # Set Art
+            # image16x9WithTitle is a title-card image only some episodes
+            # have (e.g. season premieres) -- thumbnail16x9 always exists.
+            thumb_url = (
+                (asset_data.get("image16x9WithTitle") or {}).get("url")
+                or (asset_data.get("thumbnail16x9") or {}).get("url")
+            )
+            if thumb_url:
+                play_item.setArt(
+                    {"thumb": thumb_url, "poster": thumb_url, "fanart": thumb_url}
+                )
+
         # Flag original audio language for inputstream.adaptive
         # to append "(original)"
         original_lang = asset_data.get("primaryLanguage")
@@ -164,6 +203,6 @@ class PlaySuissePlayer:
         )
         cmd = (
             f'RunScript("{monitor_script}", "{original_lang}", '
-            f'"{asset_id}", "{title}")'
+            f'"{asset_id}", "{title}", "{series_id or ""}")'
         )
         xbmc.executebuiltin(cmd)

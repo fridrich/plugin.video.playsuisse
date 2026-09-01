@@ -688,7 +688,14 @@ def list_series_episodes(series_id, series_title):
             if duration:
                 item.setProperty("TotalTime", str(duration))
 
-        url = build_url({"mode": "play", "id": ep_id, "title": name})
+        url = build_url(
+            {
+                "mode": "play",
+                "id": ep_id,
+                "title": name,
+                "series_id": series_id,
+            }
+        )
         item.setProperty("IsPlayable", "true")
         xbmcplugin.addDirectoryItem(ADDON_HANDLE, url, item, isFolder=False)
 
@@ -901,7 +908,8 @@ def run():
     elif mode == "login":
         handle_login()
     elif mode == "play":
-        player.resolve_and_play(ADDON_HANDLE, item_id, title)
+        series_id = params.get("series_id")
+        player.resolve_and_play(ADDON_HANDLE, item_id, title, series_id=series_id)
     elif mode == "add_mylist":
         try:
             token = auth_mgr.get_token()

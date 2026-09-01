@@ -49,6 +49,11 @@
 					<default>true</default>
 					<control type="toggle"/>
 				</setting>
+				<setting id="enable_upnext" type="boolean" label="30042" help="30043">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle"/>
+				</setting>
 			</group>
 		</category>
 		<category id="Audio" label="30016" help="">

@@ -43,18 +43,37 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
     server-side progress.
     """
 
-    def __init__(self, primary_lang, asset_id="", title=""):
+    def __init__(self, primary_lang, asset_id="", title="", series_id=""):
         xbmc.Player.__init__(self)
         self.primary_lang = clean_str(primary_lang)
         self.asset_id = clean_str(asset_id)
         self.title = clean_str(title)
+        self.series_id = clean_str(series_id)
         self.configured = False
         self.playback_active = False
         self.is_eof = False
         self.last_position = 0
         self.session_id = str(uuid.uuid4())[:16].replace("-", "")
+        # File path of this asset's own playback, set once confirmed in
+        # onAVStarted -- isPlayingVideo() alone can't tell "my" video apart
+        # from Up Next's next episode.
+        self._playing_file = None
+        self._stop_signal = False
+
+    def _matches_own_file(self):
+        """True unless a different file is now playing (Up Next moved on
+        and this stale object is still receiving global player callbacks).
+        """
+        if not self._playing_file:
+            return True
+        try:
+            return self.getPlayingFile() == self._playing_file
+        except Exception:
+            return True
 
     def onPlayBackStarted(self):
+        if not self._matches_own_file():
+            return
         xbmc.log(
             "PlaySuissePlaybackMonitor: onPlayBackStarted callback",
             xbmc.LOGINFO,
@@ -68,6 +87,7 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
             xbmc.LOGINFO,
         )
         self.playback_active = False
+        self._stop_signal = True
 
     def onPlayBackEnded(self):
         xbmc.log(
@@ -75,8 +95,11 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
         )
         self.playback_active = False
         self.is_eof = True
+        self._stop_signal = True
 
     def onPlayBackPaused(self):
+        if not self._matches_own_file():
+            return
         xbmc.log(
             "PlaySuissePlaybackMonitor: onPlayBackPaused callback",
             xbmc.LOGINFO,
@@ -84,6 +107,8 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
         self.send_event("pause")
 
     def onPlayBackResumed(self):
+        if not self._matches_own_file():
+            return
         xbmc.log(
             "PlaySuissePlaybackMonitor: onPlayBackResumed callback",
             xbmc.LOGINFO,
@@ -92,6 +117,11 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
 
     def onAVStarted(self):
         """Called when audio and video streams start playing."""
+        # Player callbacks are global -- they still fire on this object even
+        # after it's done its job and Up Next has moved on to another video.
+        if self.configured:
+            return
+
         xbmc.log(
             "PlaySuissePlaybackMonitor: onAVStarted callback", xbmc.LOGINFO
         )
@@ -136,7 +166,187 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
         # Configure Subtitle Track
         self._configure_subtitles()
 
+        try:
+            self._playing_file = self.getPlayingFile()
+        except Exception:
+            pass
+
         self.configured = True
+        self._setup_upnext()
+
+    def _setup_upnext(self):
+        """Discovers the next episode and registers with service.upnext if installed."""
+        try:
+            # 0. Check settings if Up Next integration is enabled
+            try:
+                if ADDON.getSetting("enable_upnext") == "false":
+                    xbmc.log(
+                        "PlaySuissePlaybackMonitor: Up Next integration is disabled in settings.",
+                        xbmc.LOGINFO,
+                    )
+                    return
+            except Exception as se:
+                xbmc.log(
+                    f"PlaySuissePlaybackMonitor: Failed to read enable_upnext setting: {se}",
+                    xbmc.LOGWARNING,
+                )
+
+            # 1. Verify service.upnext is active/installed
+            if not xbmc.getCondVisibility("System.HasAddon(service.upnext)"):
+                xbmc.log(
+                    "PlaySuissePlaybackMonitor: service.upnext is not active/installed. Skipping.",
+                    xbmc.LOGINFO,
+                )
+                return
+
+            # 2. Get authentication token
+            auth = PlaySuisseAuth(ADDON)
+            token = auth.get_token()
+
+            from api import PlaySuisseAPI
+            api = PlaySuisseAPI()
+
+            # 3. Retrieve metadata of current episode
+            asset_data, _ = api.get_asset(self.asset_id, token=token)
+            if not asset_data:
+                xbmc.log(
+                    "PlaySuissePlaybackMonitor: Could not retrieve current asset metadata for Up Next",
+                    xbmc.LOGWARNING,
+                )
+                return
+
+            # 4. Check if it's an episode of a series
+            episode_num = asset_data.get("episodeNumber")
+            season_num = asset_data.get("seasonNumber")
+            series_name = asset_data.get("seriesName")
+
+            if episode_num is None or not series_name:
+                xbmc.log(
+                    f"PlaySuissePlaybackMonitor: Asset {self.asset_id} is not an episode. Skipping Up Next.",
+                    xbmc.LOGINFO,
+                )
+                return
+
+            # 5. Resolve parent series ID
+            series_id = self.series_id if hasattr(self, "series_id") and self.series_id else None
+            if not series_id:
+                # Fallback: search for series by name
+                search_results = api.search(series_name)
+                for asset in search_results:
+                    if (
+                        asset.get("name") == series_name
+                        and (asset.get("duration") is None or asset.get("duration") == 0)
+                    ):
+                        series_id = asset.get("id")
+                        break
+
+            if not series_id:
+                xbmc.log(
+                    f"PlaySuissePlaybackMonitor: Could not resolve parent series ID for '{series_name}'",
+                    xbmc.LOGWARNING,
+                )
+                return
+
+            # 6. Retrieve series metadata to find the next episode
+            series_data, _ = api.get_asset(series_id, token=token)
+            if not series_data:
+                xbmc.log(
+                    f"PlaySuissePlaybackMonitor: Could not retrieve series metadata for {series_id}",
+                    xbmc.LOGWARNING,
+                )
+                return
+
+            episodes = series_data.get("episodes") or []
+            current_idx = -1
+            for i, ep in enumerate(episodes):
+                if ep.get("id") == self.asset_id:
+                    current_idx = i
+                    break
+
+            if current_idx == -1 or current_idx + 1 >= len(episodes):
+                xbmc.log(
+                    "PlaySuissePlaybackMonitor: No next episode found in series",
+                    xbmc.LOGINFO,
+                )
+                return
+
+            next_ep = episodes[current_idx + 1]
+            next_id = next_ep.get("id")
+            next_title = next_ep.get("name")
+
+            # 7. Build current episode and next episode payload
+            current_episode_payload = {
+                "episodeid": self.asset_id,
+                "tvshowid": series_id,
+                "title": self.title,
+                "season": season_num or 1,
+                "episode": episode_num or 1,
+            }
+
+            next_thumb = (next_ep.get("thumbnail16x9") or {}).get("url") or ""
+            art = {
+                "thumb": next_thumb,
+                "tvshow.poster": (series_data.get("image2x3WithTitle") or {}).get("url") or "",
+                "tvshow.fanart": (series_data.get("image16x9WithTitle") or {}).get("url") or "",
+            }
+
+            next_episode_payload = {
+                "episodeid": next_id,
+                "tvshowid": series_id,
+                "title": next_title,
+                "showtitle": series_name,
+                "season": next_ep.get("seasonNumber") or 1,
+                "episode": next_ep.get("episodeNumber") or 1,
+                "plot": next_ep.get("description") or "",
+                "art": art,
+            }
+
+            from urllib.parse import urlencode
+            next_play_url = (
+                "plugin://plugin.video.playsuisse/?"
+                + urlencode({
+                    "mode": "play",
+                    "id": next_id,
+                    "title": next_title,
+                    "series_id": series_id,
+                })
+            )
+
+            payload = {
+                "current_episode": current_episode_payload,
+                "next_episode": next_episode_payload,
+                "play_url": next_play_url,
+                "notification_time": 30,
+            }
+
+            # 8. Encode and send JSON-RPC notification
+            json_bytes = json.dumps(payload).encode("utf-8")
+            encoded_payload = base64.b64encode(json_bytes).decode("ascii")
+
+            rpc_call = {
+                "jsonrpc": "2.0",
+                "method": "JSONRPC.NotifyAll",
+                "params": {
+                    "sender": "plugin.video.playsuisse.SIGNAL",
+                    "message": "upnext_data",
+                    "data": [encoded_payload],
+                },
+                "id": 1,
+            }
+
+            xbmc.executeJSONRPC(json.dumps(rpc_call))
+            xbmc.log(
+                "PlaySuissePlaybackMonitor: Successfully registered next "
+                f"episode S{next_episode_payload['season']}E{next_episode_payload['episode']} "
+                "with service.upnext",
+                xbmc.LOGINFO,
+            )
+
+        except Exception as e:
+            xbmc.log(
+                f"PlaySuissePlaybackMonitor: Failed to setup Up Next: {e}\n{traceback.format_exc()}",
+                xbmc.LOGERROR,
+            )
 
     def _match_lang(self, stream_lang, target_lang):
         if not stream_lang or not target_lang:
@@ -364,6 +574,14 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
     def _is_subtitles_on(self):
         try:
             return xbmc.getCondVisibility('VideoPlayer.SubtitlesEnabled')
+        except Exception:
+            return False
+
+    def _is_own_video_playing(self):
+        if not self._playing_file:
+            return False
+        try:
+            return self.isPlayingVideo() and self.getPlayingFile() == self._playing_file
         except Exception:
             return False
 
@@ -630,23 +848,24 @@ def main():
     primary_lang = clean_str(sys.argv[1]) if len(sys.argv) > 1 else ""
     asset_id = clean_str(sys.argv[2]) if len(sys.argv) > 2 else ""
     title = clean_str(sys.argv[3]) if len(sys.argv) > 3 else ""
+    series_id = clean_str(sys.argv[4]) if len(sys.argv) > 4 else ""
     xbmc.log(
         "PlaySuissePlaybackMonitor: Arguments parsed: "
-        f"lang={primary_lang}, asset_id={asset_id}, title={title}",
+        f"lang={primary_lang}, asset_id={asset_id}, title={title}, series_id={series_id}",
         xbmc.LOGINFO,
     )
 
-    monitor = PlaySuissePlaybackMonitor(primary_lang, asset_id, title)
+    monitor = PlaySuissePlaybackMonitor(primary_lang, asset_id, title, series_id)
+    kodi_monitor = xbmc.Monitor()
 
     # Keep background script alive until playback starts and we configure
     # languages, or 60s timeout (allows for pre-rolls)
     timeout = 120  # 60 seconds (120 * 500ms)
     while not monitor.configured and timeout > 0:
-        if (
-            not monitor.playback_active and timeout < 110
-        ):  # If playback stopped and we're not just starting
+        if monitor._stop_signal:
             break
-        xbmc.sleep(500)
+        if kodi_monitor.waitForAbort(0.5):
+            break
         timeout -= 1
 
     xbmc.log(
@@ -665,8 +884,8 @@ def main():
         monitor.send_event("play")
         last_heartbeat = time.time()
 
-        while monitor.playback_active or monitor.isPlayingVideo():
-            if xbmc.Monitor().abortRequested():
+        while monitor.playback_active or monitor._is_own_video_playing():
+            if kodi_monitor.abortRequested():
                 xbmc.log(
                     "PlaySuissePlaybackMonitor: Abort requested by Kodi",
                     xbmc.LOGINFO,
@@ -674,21 +893,26 @@ def main():
                 break
 
             # Continuously monitor and record the last known valid position
+            # Use isPlayingVideo to ensure we don't accidentally read the position
+            # of a newly started video (like when Up Next automatically skips)
             if monitor.isPlayingVideo():
                 try:
                     pos = int(monitor.getTime())
-                    if pos > 0:
+                    # Only update if the position moved forward (prevents capturing
+                    # the 0-10s range of a newly launched video overriding our
+                    # 50-minute mark before the loop exits)
+                    if pos > monitor.last_position:
                         monitor.last_position = pos
                 except Exception:
                     pass
 
             now = time.time()
             if now - last_heartbeat >= 30.0:
-                if monitor.isPlayingVideo():
-                    monitor.send_event("pos")
+                monitor.send_event("pos")
                 last_heartbeat = now
 
-            xbmc.sleep(1000)
+            if kodi_monitor.waitForAbort(1.0):
+                break
 
         if monitor.is_eof:
             monitor.send_event("eof")

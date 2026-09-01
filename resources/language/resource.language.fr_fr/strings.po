@@ -182,3 +182,11 @@ msgstr "Échec du retrait de Reprendre la lecture"
 msgctxt "#30119"
 msgid "Your Play+Suisse session has expired. Please log in again."
 msgstr "Votre session Play+Suisse a expiré. Veuillez vous reconnecter."
+
+msgctxt "#30042"
+msgid "Enable \"Up Next\" integration"
+msgstr "Activer l'intégration \"Up Next\""
+
+msgctxt "#30043"
+msgid "Propose the next episode automatically near the end of the current episode (requires service.upnext)."
+msgstr "Propose automatiquement l'épisode suivant vers la fin de l'épisode en cours (nécessite service.upnext)."

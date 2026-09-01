@@ -355,6 +355,15 @@ class PlaySuisseAPI:
                 episodeNumber
                 seasonNumber
                 seriesName
+                image16x9WithTitle {
+                    url
+                }
+                image2x3WithTitle {
+                    url
+                }
+                thumbnail16x9 {
+                    url
+                }
                 medias {
                     type
                     url

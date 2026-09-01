@@ -182,3 +182,11 @@ msgstr "Errur cun allontanar da Guardar enavant"
 msgctxt "#30119"
 msgid "Your Play+Suisse session has expired. Please log in again."
 msgstr "Voss access Play+Suisse è scadì. S'annunziai da nov, per plaschair."
+
+msgctxt "#30042"
+msgid "Enable \"Up Next\" integration"
+msgstr "Activar l'integraziaun \"Up Next\""
+
+msgctxt "#30043"
+msgid "Propose the next episode automatically near the end of the current episode (requires service.upnext)."
+msgstr "Propone automaticamain l'episodi proxim vers la fin da l'episodi actual (ha basegn da service.upnext)."

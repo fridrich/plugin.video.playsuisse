@@ -182,3 +182,11 @@ msgstr "Entfernen aus Weiterschauen fehlgeschlagen"
 msgctxt "#30119"
 msgid "Your Play+Suisse session has expired. Please log in again."
 msgstr "Ihre Play+Suisse-Sitzung ist abgelaufen. Bitte melden Sie sich erneut an."
+
+msgctxt "#30042"
+msgid "Enable \"Up Next\" integration"
+msgstr "\"Up Next\"-Integration aktivieren"
+
+msgctxt "#30043"
+msgid "Propose the next episode automatically near the end of the current episode (requires service.upnext)."
+msgstr "Schlägt die nächste Folge automatisch kurz vor dem Ende der aktuellen Folge vor (erfordert service.upnext)."

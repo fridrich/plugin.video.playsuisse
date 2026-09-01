@@ -182,3 +182,11 @@ msgstr "Impossibile rimuovere da Continua a guardare"
 msgctxt "#30119"
 msgid "Your Play+Suisse session has expired. Please log in again."
 msgstr "La sessione Play+Suisse è scaduta. Effettua nuovamente l'accesso."
+
+msgctxt "#30042"
+msgid "Enable \"Up Next\" integration"
+msgstr "Attiva integrazione \"Up Next\""
+
+msgctxt "#30043"
+msgid "Propose the next episode automatically near the end of the current episode (requires service.upnext)."
+msgstr "Propone automaticamente l'episodio successivo verso la fine dell'episodio corrente (richiede service.upnext)."
