@@ -306,15 +306,18 @@ def list_page(page_id, page_title):
                 )
             ):
                 continue
-            if mod_id == "my_list" or any(
-                term in title_lower
-                for term in (
-                    "ma liste",
-                    "meine liste",
-                    "la mia lista",
-                    "my list",
-                    "glista",
-                    "watchlist",
+            if page_id != "my_list" and (
+                mod_id == "my_list"
+                or any(
+                    term in title_lower
+                    for term in (
+                        "ma liste",
+                        "meine liste",
+                        "la mia lista",
+                        "my list",
+                        "glista",
+                        "watchlist",
+                    )
                 )
             ):
                 continue
