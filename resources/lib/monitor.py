@@ -117,9 +117,20 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
 
     def onAVStarted(self):
         """Called when audio and video streams start playing."""
-        # Player callbacks are global -- they still fire on this object even
+        self._try_configure()
+
+    def _try_configure(self):
+        """Configure audio/subtitles and register Up Next once. Called from
+        onAVStarted, and also polled from main()'s wait loop as a fallback --
+        onAVStarted/onPlayBackStarted never fire for inputstream.adaptive
+        content on some platforms (confirmed on OSMC/ARM), even though the
+        video plays back fine.
+        """
+        # Player callbacks are global -- this object can still get called
         # after it's done its job and Up Next has moved on to another video.
         if self.configured:
+            return
+        if not self.isPlayingVideo():
             return
 
         xbmc.log(
@@ -864,6 +875,7 @@ def main():
     while not monitor.configured and timeout > 0:
         if monitor._stop_signal:
             break
+        monitor._try_configure()
         if kodi_monitor.waitForAbort(0.5):
             break
         timeout -= 1
