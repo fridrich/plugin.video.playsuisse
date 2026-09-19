@@ -142,6 +142,17 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
         if not self.isPlayingVideo():
             return
 
+        # If resuming, wait until Kodi has completed the seek before
+        # configuring streams (calling setAudioStream/setSubtitleStream during
+        # an in-flight seek resets inputstream.adaptive back to 0).
+        if self.last_position > 5:
+            try:
+                current_time = int(self.getTime() or 0)
+                if current_time < self.last_position - 5:
+                    return
+            except Exception:
+                return
+
         xbmc.log(
             "PlaySuissePlaybackMonitor: onAVStarted callback", xbmc.LOGINFO
         )
@@ -458,16 +469,20 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
             target_idx = selected_idx if selected_idx != -1 else fallback_idx
 
             if target_idx != -1:
-                # Check if the target audio language is already active
+                # Track 0 is always Kodi's default initial audio track.
+                # Calling setAudioStream(0) destroys the audio decoder and
+                # resets inputstream.adaptive's seek position back to 0.
                 current_lang = xbmc.getInfoLabel('VideoPlayer.AudioLanguage')
-                if current_lang and self._match_lang(
-                    current_lang, target_lang
+                if target_idx == 0 or (
+                    current_lang and self._match_lang(
+                        current_lang, target_lang
+                    )
                 ):
                     xbmc.log(
                         "PlaySuissePlaybackMonitor: Audio track for "
                         f"'{target_lang}' is already active "
-                        f"('{current_lang}'). "
-                        "Skipping selection to prevent silence.",
+                        f"(track {target_idx}, lang '{current_lang}'). "
+                        "Skipping selection.",
                         xbmc.LOGINFO,
                     )
                 else:
