@@ -43,7 +43,15 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
     server-side progress.
     """
 
-    def __init__(self, primary_lang, asset_id="", title="", series_id=""):
+    def __init__(
+        self,
+        primary_lang,
+        asset_id="",
+        title="",
+        series_id="",
+        resume_pos=0,
+        duration=0,
+    ):
         xbmc.Player.__init__(self)
         self.primary_lang = clean_str(primary_lang)
         self.asset_id = clean_str(asset_id)
@@ -52,7 +60,8 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
         self.configured = False
         self.playback_active = False
         self.is_eof = False
-        self.last_position = 0
+        self.duration = duration
+        self.last_position = resume_pos
         self.session_id = str(uuid.uuid4())[:16].replace("-", "")
         # File path of this asset's own playback, set once confirmed in
         # onAVStarted -- isPlayingVideo() alone can't tell "my" video apart
@@ -152,7 +161,6 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
             f"PlaySuissePlaybackMonitor: Detected duration: {duration} s",
             xbmc.LOGINFO,
         )
-
         # Ignore short intro/logo clips preceding the main video
         if duration > 0 and duration < 25:
             xbmc.log(
@@ -164,6 +172,9 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
             # We want to wait for the actual main video to trigger a second
             # onAVStarted!
             return
+
+        if duration > 0:
+            self.duration = int(duration)
 
         xbmc.log(
             "PlaySuissePlaybackMonitor: Playback started, "
@@ -670,6 +681,30 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
 
         return {"account_id": user_id, "profile_id": user_id}
 
+    def _get_valid_position(self):
+        """Returns the current playback position in seconds, or None if the
+        position is invalid (seeking, uninitialized clock, or > duration).
+        """
+        try:
+            if not self.isPlayingVideo() or not self._matches_own_file():
+                return None
+            pos = int(self.getTime())
+            dur = self.duration
+            if not dur:
+                try:
+                    dur = int(self.getTotalTime() or 0)
+                    if dur > 0:
+                        self.duration = dur
+                except Exception:
+                    pass
+            if dur > 0 and pos > dur:
+                return None
+            if pos < 0 or pos > 86400:
+                return None
+            return pos
+        except Exception:
+            return None
+
     def send_event(self, event_name):
         """Sends progress telemetry directly to the Play Suisse DataLab
         Event Gateway.
@@ -688,12 +723,10 @@ class PlaySuissePlaybackMonitor(xbmc.Player):
             if event_name in ("stop", "eof"):
                 position = self.last_position
             else:
-                try:
-                    position = int(self.getTime())
-                    if position > 0:
-                        self.last_position = position
-                except Exception:
-                    position = self.last_position
+                pos = self._get_valid_position()
+                if pos is not None and (pos > 0 or self.last_position == 0):
+                    self.last_position = pos
+                position = self.last_position
 
             if position < 0:
                 position = 0
@@ -860,13 +893,27 @@ def main():
     asset_id = clean_str(sys.argv[2]) if len(sys.argv) > 2 else ""
     title = clean_str(sys.argv[3]) if len(sys.argv) > 3 else ""
     series_id = clean_str(sys.argv[4]) if len(sys.argv) > 4 else ""
+    resume_pos = (
+        int(sys.argv[5])
+        if len(sys.argv) > 5 and sys.argv[5].isdigit()
+        else 0
+    )
+    duration = (
+        int(sys.argv[6])
+        if len(sys.argv) > 6 and sys.argv[6].isdigit()
+        else 0
+    )
     xbmc.log(
         "PlaySuissePlaybackMonitor: Arguments parsed: "
-        f"lang={primary_lang}, asset_id={asset_id}, title={title}, series_id={series_id}",
+        f"lang={primary_lang}, asset_id={asset_id}, title={title}, "
+        f"series_id={series_id}, resume_pos={resume_pos}, "
+        f"duration={duration}",
         xbmc.LOGINFO,
     )
 
-    monitor = PlaySuissePlaybackMonitor(primary_lang, asset_id, title, series_id)
+    monitor = PlaySuissePlaybackMonitor(
+        primary_lang, asset_id, title, series_id, resume_pos, duration
+    )
     kodi_monitor = xbmc.Monitor()
 
     # Keep background script alive until playback starts and we configure
@@ -905,18 +952,12 @@ def main():
                 break
 
             # Continuously monitor and record the last known valid position
-            # Use isPlayingVideo to ensure we don't accidentally read the position
-            # of a newly started video (like when Up Next automatically skips)
-            if monitor.isPlayingVideo():
-                try:
-                    pos = int(monitor.getTime())
-                    # Only update if the position moved forward (prevents capturing
-                    # the 0-10s range of a newly launched video overriding our
-                    # 50-minute mark before the loop exits)
-                    if pos > monitor.last_position:
-                        monitor.last_position = pos
-                except Exception:
-                    pass
+            # Use _matches_own_file to ensure we don't accidentally read
+            # the position of a newly started video (like when Up Next skips)
+            if monitor._matches_own_file():
+                pos = monitor._get_valid_position()
+                if pos is not None and (pos > 0 or monitor.last_position == 0):
+                    monitor.last_position = pos
 
             now = time.time()
             if now - last_heartbeat >= 30.0:
@@ -927,6 +968,8 @@ def main():
                 break
 
         if monitor.is_eof:
+            if monitor.duration > 0:
+                monitor.last_position = monitor.duration
             monitor.send_event("eof")
         else:
             monitor.send_event("stop")

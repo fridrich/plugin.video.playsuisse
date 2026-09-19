@@ -19,8 +19,8 @@ import xbmcgui
 import xbmcplugin
 import xbmcvfs
 
+from resources.lib.api import PlaySuisseAPI, get_resume_position
 from resources.lib.auth import PlaySuisseAuth
-from resources.lib.api import PlaySuisseAPI
 from resources.lib.player import PlaySuissePlayer
 
 ADDON = xbmcaddon.Addon()
@@ -357,35 +357,6 @@ def list_module(page_id, module_idx):
         if page_error == "AUTH_EXPIRED":
             notify_session_expired()
         xbmcplugin.endOfDirectory(ADDON_HANDLE, False)
-
-
-def get_resume_position(asset):
-    """Safely parses the resume position in seconds from the GraphQL
-    'watch' structure.
-    """
-    watch = asset.get("watch")
-    if not watch:
-        return 0
-
-    # 1. Direct watch.progress (e.g. Movies)
-    progress = watch.get("progress")
-    if progress:
-        position = progress.get("position")
-        completed = progress.get("completed")
-        if position and not completed:
-            return int(position)
-
-    # 2. Nested watch.watch.progress (e.g. Episodes inside Series)
-    nested_watch = watch.get("watch")
-    if isinstance(nested_watch, dict):
-        nested_progress = nested_watch.get("progress")
-        if nested_progress:
-            position = nested_progress.get("position")
-            completed = nested_progress.get("completed")
-            if position and not completed:
-                return int(position)
-
-    return 0
 
 
 MYLIST_CACHE_TTL = 60  # seconds

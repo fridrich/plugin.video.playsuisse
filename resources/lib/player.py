@@ -14,8 +14,8 @@ import xbmcplugin
 import xbmcvfs
 import inputstreamhelper
 
+from resources.lib.api import PlaySuisseAPI, get_resume_position
 from resources.lib.auth import PlaySuisseAuth
-from resources.lib.api import PlaySuisseAPI
 
 
 class PlaySuissePlayer:
@@ -201,8 +201,11 @@ class PlaySuissePlayer:
         monitor_script = os.path.join(
             addon_path, "resources", "lib", "monitor.py"
         )
+        resume_pos = get_resume_position(asset_data) if asset_data else 0
+        duration = int(asset_data.get("duration") or 0) if asset_data else 0
         cmd = (
             f'RunScript("{monitor_script}", "{original_lang}", '
-            f'"{asset_id}", "{title}", "{series_id or ""}")'
+            f'"{asset_id}", "{title}", "{series_id or ""}", '
+            f'"{resume_pos}", "{duration}")'
         )
         xbmc.executebuiltin(cmd)
